@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# env (keep .env.example committed)
+.env
+.env.local
+.env.*.local
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# data: commit only the bundled sample files; anything else dropped into /db stays local
+db/*
+!db/sample-cards.json
+!db/model-reference.json
+!db/README.md
+
+# iisnode
+iisnode/
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

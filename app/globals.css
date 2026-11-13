@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn tokens, primary/destructive mapped to the brand colors */
+    --background: 160 12% 94%;
+    --foreground: 162 18% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 162 18% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 162 18% 11%;
+    --primary: 146 50% 36%; /* brand.primary #2E8B57 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 12% 90%;
+    --secondary-foreground: 162 18% 11%;
+    --muted: 160 12% 92%;
+    --muted-foreground: 160 7% 38%;
+    --accent: 160 12% 92%;
+    --accent-foreground: 162 18% 11%;
+    --destructive: 0 72% 51%; /* brand.accent #dc2626 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 160 10% 84%;
+    --input: 160 10% 84%;
+    --ring: 146 50% 36%;
+    --radius: 0.6rem;
+
+    /* Dynacard chart semantics */
+    --stroke-up: 196 64% 32%;
+    --stroke-down: 25 75% 43%;
+    --stroke-ref: 162 5% 52%;
+    --grid: 160 12% 91%;
+    --good: 145 45% 34%;
+    --good-bg: 142 36% 92%;
+    --warn: 36 79% 34%;
+    --warn-bg: 39 81% 92%;
+  }
+
+  .dark {
+    --background: 168 16% 7%;
+    --foreground: 158 14% 90%;
+    --card: 165 14% 11%;
+    --card-foreground: 158 14% 90%;
+    --popover: 165 14% 11%;
+    --popover-foreground: 158 14% 90%;
+    --primary: 147 50% 47%; /* brand.secondary #3CB371 reads better on dark */
+    --primary-foreground: 168 16% 7%;
+    --secondary: 162 11% 16%;
+    --secondary-foreground: 158 14% 90%;
+    --muted: 162 11% 15%;
+    --muted-foreground: 160 7% 62%;
+    --accent: 162 11% 16%;
+    --accent-foreground: 158 14% 90%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 163 11% 19%;
+    --input: 163 11% 19%;
+    --ring: 147 50% 47%;
+
+    --stroke-up: 196 58% 61%;
+    --stroke-down: 25 79% 64%;
+    --stroke-ref: 159 6% 58%;
+    --grid: 163 13% 15%;
+    --good: 146 43% 60%;
+    --good-bg: 146 29% 15%;
+    --warn: 40 70% 63%;
+    --warn-bg: 39 43% 16%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-semibold tracking-[0.01em];
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  .eyebrow {
+    @apply font-mono text-[0.72rem] uppercase tracking-[0.12em] text-muted-foreground;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
