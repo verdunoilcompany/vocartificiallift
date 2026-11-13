@@ -14,6 +14,17 @@ next to the typical shape of the predicted label, with the bins the model weighs
   predicted label; searchable/sortable card table; Plotly card viewer with a
   "Compare with" label and an importance overlay; a guide to the 10 labels.
 - No review flags or reviewer notes (removed on request to match the artifact).
+- `/explorer` (Dynocard Explorer, under Dynocards in the menu) is the same `DynocardReview`
+  component with `hierarchyFilter`: cascading Area → Route → Well selects from
+  `lib/dynocard/well-hierarchy.ts` (133 wells supplied by the business). Card NodeIDs match
+  case-insensitively, ignoring "#" and extra spaces. It also has From / To date filters (no time)
+  (whole days; `lib/dynocard/card-time.ts` parses the free-text card Date and compares its day;
+  undated cards are hidden only while a date range is set). It also passes `gallery`, which swaps the
+  table + single viewer for `CardExplorer`: every card on the page as a full `CardViewer` (own
+  "Compare with" and importance toggle), 25/50/100 per page, sticky page-size/paging bar, viewers
+  lazily mounted near the viewport. Each card has a top-right × that hides it (later cards move up,
+  counts update); "Show N hidden cards" in the sticky bar restores them. No thumbnails, selection
+  or overlay (removed on request).
 - Left-hand menu (`components/AppSidebar.tsx`, `AppShell.tsx`) with four optimization dashboards
   modelled on the Ambyint/QuickSight screenshots: `/daily` (Daily Dashboard), `/trends`
   (Trend Analysis), `/setpoints` (Setpoint Report), `/review` (Review). Field Summary was not

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  Compass,
   GitCompareArrows,
   LayoutDashboard,
   LineChart,
@@ -34,7 +35,10 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "Dynocards",
-    items: [{ href: "/", label: "Dynocard Classifier", icon: Activity }],
+    items: [
+      { href: "/", label: "Dynocard Classifier", icon: Activity },
+      { href: "/explorer", label: "Dynocard Explorer", icon: Compass },
+    ],
   },
 ];
 
