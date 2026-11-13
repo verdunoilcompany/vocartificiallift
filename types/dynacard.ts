@@ -20,12 +20,10 @@ export interface DynaCard {
   label: string;
   /** 50 scaled loads (0–1). */
   L: number[];
-  /** Auto-generated review note; empty when nothing looks off. */
-  note: string;
 }
 
 /** Raw sample row as stored in db/sample-cards.json. */
-export type SampleCardRow = Omit<DynaCard, "id" | "note">;
+export type SampleCardRow = Omit<DynaCard, "id">;
 
 /** Model metadata: typical shape per label and per-bin feature importance. */
 export interface ModelReference {

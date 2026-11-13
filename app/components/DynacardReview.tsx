@@ -12,7 +12,7 @@ import { FULL_PUMP } from "@/lib/dynacard/labels";
 import { CardTable } from "./CardTable";
 import { CardToolbar } from "./CardToolbar";
 import { CardViewer } from "./CardViewer";
-import { LabelFilterChips, REVIEW_FILTER } from "./LabelFilterChips";
+import { LabelFilterChips } from "./LabelFilterChips";
 import { LabelGuide } from "./LabelGuide";
 
 export function DynacardReview() {
@@ -24,10 +24,7 @@ export function DynacardReview() {
   const [showImportance, setShowImportance] = useState(true);
 
   const visible = useMemo(
-    () =>
-      cards.filter((c) =>
-        filter === null ? true : filter === REVIEW_FILTER ? Boolean(c.note) : c.label === filter,
-      ),
+    () => cards.filter((c) => filter === null || c.label === filter),
     [cards, filter],
   );
   const selected = visible.find((c) => c.id === selectedId) ?? visible[0] ?? null;

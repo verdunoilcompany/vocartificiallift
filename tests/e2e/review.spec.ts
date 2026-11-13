@@ -9,6 +9,9 @@ test("shows sample cards, the signed-in user and a chart", async ({ page }) => {
   await expect(page.getByTestId("status")).toHaveText("Showing 25 sample cards.");
   await expect(page.getByTestId("dynacard-plot").locator(".main-svg").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "The 10 labels the model can predict" })).toBeVisible();
+  // Matches the artifact: no review chip and no reviewer notes.
+  await expect(page.getByText("Needs review")).toHaveCount(0);
+  await expect(page.getByText("Reviewer note")).toHaveCount(0);
 });
 
 test("filters by label and selects a card", async ({ page }) => {

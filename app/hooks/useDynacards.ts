@@ -81,10 +81,7 @@ export function useDynacards() {
       if (!claim(mine)) return false;
       setCards(data.cards);
       setSource({ kind: "upload", fileName: data.fileName ?? file.name });
-      const flagged = data.cards.filter((c) => c.note).length;
-      toast.success(`Loaded ${data.cards.length} cards from ${file.name}.`, {
-        description: flagged ? `${flagged} flagged for review.` : undefined,
-      });
+      toast.success(`Loaded ${data.cards.length} cards from ${file.name}.`);
       return true;
     } catch (err) {
       toast.error("Could not load the file.", {

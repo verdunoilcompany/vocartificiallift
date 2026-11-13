@@ -11,10 +11,9 @@ Build the Dynocard viewer as a Next.js app following the VOC D&T stub. Each card
 next to the typical shape of the predicted label, with the bins the model weighs most highlighted.
 
 - One page (`/`): load predictions (CSV or .xlsx) or use the 25 bundled samples; filter by
-  predicted label or "Needs review"; searchable/sortable card table; Plotly card viewer with a
+  predicted label; searchable/sortable card table; Plotly card viewer with a
   "Compare with" label and an importance overlay; a guide to the 10 labels.
-- "Needs review" flags come from heuristics in `lib/dynacard/review.ts` (fillage vs. label,
-  tubing-movement shape check), applied to samples and uploads alike.
+- No review flags or reviewer notes (removed on request to match the artifact).
 - Uploads are parsed server-side and returned to the browser; nothing is stored.
 
 ## Resolved choices
@@ -54,7 +53,7 @@ components/          Header, Footer, ThemeProvider, ThemeToggle
 components/ui/       shadcn components
 db/                  flat data files (only the two sample JSON files are committed)
 iis/iisnode.js       iisnode entry point (named-pipe PORT); copied into the standalone build
-lib/                 api.ts (basePath helpers), auth.ts, connectors, dynacard/ (parse, review, geometry, labels)
+lib/                 api.ts (basePath helpers), auth.ts, connectors, dynacard/ (parse, geometry, labels)
 notes/               Claude-created notes
 public/              static files
 scripts/             prepare-standalone.mjs (postbuild)

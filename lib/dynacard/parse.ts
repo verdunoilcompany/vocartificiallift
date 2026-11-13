@@ -1,6 +1,5 @@
 import { LOAD_BINS, type DynaCard } from "@/types/dynacard";
 import { NO_PREDICTION } from "./labels";
-import { withReviewNotes } from "./review";
 
 /** Minimal RFC-4180 CSV parser (quoted fields, escaped quotes, CRLF/LF). */
 export function parseCsv(text: string): string[][] {
@@ -78,7 +77,7 @@ export function rowsToCards(rows: string[][]): DynaCard[] {
     return Number.isFinite(v) ? round1(v) : null;
   };
 
-  const out: Omit<DynaCard, "note">[] = [];
+  const out: DynaCard[] = [];
   rows.slice(1).forEach((r, k) => {
     const L = loadIx.map((i) => parseFloat(r[i]));
     if (L.some((v) => !Number.isFinite(v))) return;
@@ -97,5 +96,5 @@ export function rowsToCards(rows: string[][]): DynaCard[] {
   });
 
   if (!out.length) throw new CardParseError("No rows with all 50 loads were found.");
-  return withReviewNotes(out);
+  return out;
 }

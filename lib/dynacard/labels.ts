@@ -22,13 +22,4 @@ export const LABELS = Object.keys(LABEL_DESCRIPTIONS);
 export const FULL_PUMP = "Full Pump";
 export const NO_PREDICTION = "No prediction";
 
-/** Labels whose cards still look "full" — high fillage is expected for these. */
-export const FULLISH_LABELS = [
-  FULL_PUMP,
-  "Pump Hitting Down",
-  "Worn Barrel",
-  "Sticking Pump",
-  NO_PREDICTION,
-];
-
 export const isFullPump = (label: string) => label === FULL_PUMP;

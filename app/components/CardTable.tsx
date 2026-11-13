@@ -40,11 +40,6 @@ const columns: ColumnDef<DynaCard>[] = [
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <LabelDot label={row.original.label} />
           <span className="truncate">{row.original.label}</span>
-          {row.original.note && (
-            <span className="rounded bg-warn-bg px-1.5 py-px font-mono text-[0.65rem] font-semibold uppercase tracking-wider text-warn">
-              Review
-            </span>
-          )}
         </span>
       </div>
     ),
