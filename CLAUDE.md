@@ -87,6 +87,10 @@ All of typecheck, lint, unit tests and build must pass with zero errors before c
 
 ## Deployment (IIS)
 
+Server prerequisites: IIS with Windows Authentication, URL Rewrite, iisnode, Node 20+ on the
+system PATH. `scripts/install-iis-app.ps1 -PackagePath <standalone folder>` (run as admin on the
+server) does steps 2 and 4 below, sets up the app pool and permissions, and smoke-tests `/api/user`.
+
 1. `npm ci && npm run build` on a machine with the same Node major as the server.
 2. Copy `.next/standalone/` to the IIS application folder for `/dynacard`. It contains
    `web.config`, `iisnode.js`, `server.js`, `.next/`, `public/`, `db/` and a trimmed `node_modules`.
