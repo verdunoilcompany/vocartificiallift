@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { closedLoop } from "@/lib/dynacard/geometry";
-import { LABELS, LABEL_DESCRIPTIONS } from "@/lib/dynacard/labels";
-import type { ModelReference } from "@/types/dynacard";
+import { closedLoop } from "@/lib/dynocard/geometry";
+import { LABELS, LABEL_DESCRIPTIONS } from "@/lib/dynocard/labels";
+import type { ModelReference } from "@/types/dynocard";
 
 function Shape({ loads }: { loads: number[] }) {
   const x = (v: number) => 8 + v * 164;

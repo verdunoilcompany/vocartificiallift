@@ -6,29 +6,29 @@ import type { Annotations, Config, Data, Layout } from "plotly.js";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cssColor } from "@/app/hooks/useCssColor";
-import { BIN_POSITIONS, closedLoop } from "@/lib/dynacard/geometry";
-import { UPSTROKE_BINS, type DynaCard } from "@/types/dynacard";
+import { BIN_POSITIONS, closedLoop } from "@/lib/dynocard/geometry";
+import { UPSTROKE_BINS, type DynoCard } from "@/types/dynocard";
 
 type PlotlyModule = typeof import("plotly.js");
 
 /** Bins whose importance exceeds this are highlighted as "where the model looks". */
 const HOT_THRESHOLD = 0.55;
 
-interface DynacardPlotProps {
-  card: DynaCard;
+interface DynocardPlotProps {
+  card: DynoCard;
   compareLabel: string;
   referenceShape?: number[];
   importance: number[];
   showImportance: boolean;
 }
 
-export function DynacardPlot({
+export function DynocardPlot({
   card,
   compareLabel,
   referenceShape,
   importance,
   showImportance,
-}: DynacardPlotProps) {
+}: DynocardPlotProps) {
   const el = useRef<HTMLDivElement>(null);
   const plotly = useRef<PlotlyModule | null>(null);
   const { resolvedTheme } = useTheme();
@@ -90,16 +90,16 @@ export function DynacardPlot({
       <div
         ref={el}
         role="img"
-        aria-label={`Dynacard for ${card.node}, predicted ${card.label}, compared with the typical ${compareLabel} shape`}
+        aria-label={`Dynocard for ${card.node}, predicted ${card.label}, compared with the typical ${compareLabel} shape`}
         className="h-[340px] w-full sm:h-[420px]"
-        data-testid="dynacard-plot"
+        data-testid="dynocard-plot"
       />
     </div>
   );
 }
 
 function buildFigure(
-  card: DynaCard,
+  card: DynoCard,
   compareLabel: string,
   referenceShape: number[] | undefined,
   importance: number[],

@@ -19,7 +19,7 @@ export default function GlobalError({
         }}
       >
         <main>
-          <h1 style={{ fontSize: 24, margin: "0 0 8px" }}>Dynacard Classifier Review is unavailable</h1>
+          <h1 style={{ fontSize: 24, margin: "0 0 8px" }}>VOC Artificial Lift is unavailable</h1>
           <p style={{ margin: "0 0 16px" }}>
             The app failed to load{error.digest ? ` (reference ${error.digest})` : ""}.
           </p>

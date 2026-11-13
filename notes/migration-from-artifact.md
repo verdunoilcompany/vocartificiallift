@@ -5,7 +5,7 @@ per-label reference shapes and per-bin importance, inline SVG chart, CSV loader)
 
 ## Kept as-is
 - Sample cards, reference shapes, importance weights (extracted verbatim into `/db`).
-- Bin position math (100 up + 100 down samples, averaged in fours) → `lib/dynacard/geometry.ts`.
+- Bin position math (100 up + 100 down samples, averaged in fours) → `lib/dynocard/geometry.ts`.
 - Label descriptions, CSV column contract (L0–L49, PredictedLabel/Label, NodeID, Date, SPM,
   Fillage, unnamed row column), one-decimal rounding of SPM/fillage.
 - Viewer behavior: compare selector defaults to the card's own label (Full Pump if no reference),

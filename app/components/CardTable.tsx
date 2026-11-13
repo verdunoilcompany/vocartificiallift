@@ -15,16 +15,16 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import type { DynaCard } from "@/types/dynacard";
+import type { DynoCard } from "@/types/dynocard";
 import { LabelDot } from "./LabelDot";
 
 interface CardTableProps {
-  cards: DynaCard[];
+  cards: DynoCard[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-const columns: ColumnDef<DynaCard>[] = [
+const columns: ColumnDef<DynoCard>[] = [
   {
     accessorKey: "row",
     header: "#",

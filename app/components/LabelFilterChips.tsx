@@ -4,11 +4,11 @@ import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DynaCard } from "@/types/dynacard";
+import type { DynoCard } from "@/types/dynocard";
 import { LabelDot } from "./LabelDot";
 
 interface LabelFilterChipsProps {
-  cards: DynaCard[];
+  cards: DynoCard[];
   filter: string | null;
   onChange: (filter: string | null) => void;
 }

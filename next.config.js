@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynacard";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynocard";
 
 module.exports = {
   output: "standalone", // required for iisnode deployment

@@ -50,7 +50,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Dynacard chart semantics (theme-aware, see globals.css)
+        // Dynocard chart semantics (theme-aware, see globals.css)
         stroke: {
           up: "hsl(var(--stroke-up))",
           down: "hsl(var(--stroke-down))",

@@ -6,12 +6,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { LABELS, isFullPump } from "@/lib/dynacard/labels";
-import type { DynaCard, ModelReference } from "@/types/dynacard";
-import { DynacardPlot } from "./DynacardPlot";
+import { LABELS, isFullPump } from "@/lib/dynocard/labels";
+import type { DynoCard, ModelReference } from "@/types/dynocard";
+import { DynocardPlot } from "./DynocardPlot";
 
 interface CardViewerProps {
-  card: DynaCard;
+  card: DynoCard;
   model: ModelReference;
   compareLabel: string;
   onCompareChange: (label: string) => void;
@@ -89,7 +89,7 @@ export function CardViewer({
           </div>
         </div>
 
-        <DynacardPlot
+        <DynocardPlot
           card={card}
           compareLabel={compareLabel}
           referenceShape={model.ref[compareLabel]}

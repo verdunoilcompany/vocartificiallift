@@ -1,5 +1,5 @@
-import { DynacardReview } from "@/app/components/DynacardReview";
+import { DynocardReview } from "@/app/components/DynocardReview";
 
 export default function HomePage() {
-  return <DynacardReview />;
+  return <DynocardReview />;
 }

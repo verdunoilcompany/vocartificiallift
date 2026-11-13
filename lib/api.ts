@@ -9,7 +9,7 @@
  * This helper ensures consistency when constructing URLs.
  */
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynacard";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynocard";
 
 /**
  * Constructs a full API URL with the basePath prefix

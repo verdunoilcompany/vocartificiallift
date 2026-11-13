@@ -2,7 +2,7 @@ import "server-only";
 import sql from "mssql";
 
 /**
- * Shared MSSQL connection pool. Not used by the dynacard viewer yet — ready for when
+ * Shared MSSQL connection pool. Not used by the dynocard viewer yet — ready for when
  * predictions move from flat files into SQL Server. All settings come from .env.
  */
 let poolPromise: Promise<sql.ConnectionPool> | null = null;

@@ -2,7 +2,7 @@ import "server-only";
 import { Pool, type QueryResultRow } from "pg";
 
 /**
- * Shared Postgres connection pool. Not used by the dynacard viewer yet.
+ * Shared Postgres connection pool. Not used by the dynocard viewer yet.
  * Connection string comes from PG_CONNECTION_STRING in .env.
  */
 let pool: Pool | null = null;

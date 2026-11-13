@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-  Installs or updates Dynacard Classifier Review as an IIS application. Run as Administrator
+  Installs or updates VOC Artificial Lift as an IIS application. Run as Administrator
   ON THE IIS SERVER.
 
 .DESCRIPTION
   1. Checks prerequisites: IIS, URL Rewrite, iisnode, Node.js on PATH, Windows Authentication.
   2. Copies the package (the contents of .next/standalone) to the target folder.
-  3. Creates an app pool (no managed code) and the /dynacard application under the site.
+  3. Creates an app pool (no managed code) and the /dynocard application under the site.
   4. Turns on Windows Authentication and turns off Anonymous for the application.
   5. Gives the app pool identity read access, and modify access to the iisnode log folder.
   6. Requests the API health URL and prints the result.
@@ -14,15 +14,15 @@
   Re-running it updates the files in place and recycles the app pool.
 
 .EXAMPLE
-  .\install-iis-app.ps1 -PackagePath C:\deploy\dynacard -SiteName "Default Web Site"
+  .\install-iis-app.ps1 -PackagePath C:\deploy\dynocard -SiteName "Default Web Site"
 #>
 [CmdletBinding()]
 param(
   [Parameter(Mandatory)] [string] $PackagePath,
   [string] $SiteName = "Default Web Site",
-  [string] $AppPath = "/dynacard",
-  [string] $TargetPath = "C:\inetpub\apps\dynacard",
-  [string] $AppPoolName = "dynacard"
+  [string] $AppPath = "/dynocard",
+  [string] $TargetPath = "C:\inetpub\apps\dynocard",
+  [string] $AppPoolName = "dynocard"
 )
 
 $ErrorActionPreference = "Stop"

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { apiUrl } from "@/lib/api";
-import type { ApiError, CardSource, CardsResponse, DynaCard, ModelReference } from "@/types/dynacard";
+import type { ApiError, CardSource, CardsResponse, DynoCard, ModelReference } from "@/types/dynocard";
 
 export type LoadState = "loading" | "ready" | "error";
 
@@ -18,8 +18,8 @@ async function readJson<T>(res: Response): Promise<T> {
 }
 
 /** Loads the sample cards + model reference, and handles CSV/XLSX uploads. */
-export function useDynacards() {
-  const [cards, setCards] = useState<DynaCard[]>([]);
+export function useDynocards() {
+  const [cards, setCards] = useState<DynoCard[]>([]);
   const [model, setModel] = useState<ModelReference | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState<string | null>(null);

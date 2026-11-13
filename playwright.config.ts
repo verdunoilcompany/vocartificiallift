@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynacard";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/dynocard";
 const port = Number(process.env.E2E_PORT || 3100);
 
 export default defineConfig({

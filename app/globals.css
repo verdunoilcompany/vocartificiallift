@@ -26,7 +26,7 @@
     --ring: 146 50% 36%;
     --radius: 0.6rem;
 
-    /* Dynacard chart semantics */
+    /* Dynocard chart semantics */
     --stroke-up: 196 64% 32%;
     --stroke-down: 25 75% 43%;
     --stroke-ref: 162 5% 52%;
@@ -35,6 +35,15 @@
     --good-bg: 142 36% 92%;
     --warn: 36 79% 34%;
     --warn-bg: 39 81% 92%;
+
+    /* Artificial-lift dashboards: ASPM classification and status colors */
+    --aspm-dialed: 148 64% 58%;
+    --aspm-over: 7 89% 67%;
+    --aspm-under: 47 96% 64%;
+    --aspm-gas: 280 87% 60%;
+    --aspm-undefined: 0 0% 80%;
+    --aspm-unclassified: 0 0% 62%;
+    --sidebar: 0 0% 100%;
   }
 
   .dark {
@@ -66,6 +75,14 @@
     --good-bg: 146 29% 15%;
     --warn: 40 70% 63%;
     --warn-bg: 39 43% 16%;
+
+    --aspm-dialed: 148 50% 50%;
+    --aspm-over: 7 75% 60%;
+    --aspm-under: 47 80% 55%;
+    --aspm-gas: 280 65% 66%;
+    --aspm-undefined: 0 0% 45%;
+    --aspm-unclassified: 0 0% 32%;
+    --sidebar: 165 14% 9%;
   }
 
   * {

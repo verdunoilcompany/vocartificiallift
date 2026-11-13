@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BIN_POSITIONS, closedLoop } from "@/lib/dynacard/geometry";
+import { BIN_POSITIONS, closedLoop } from "@/lib/dynocard/geometry";
 
 const flat = Array.from({ length: 50 }, () => 0.5);
 

@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import "./globals.css";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/app/contexts/UserContext";
@@ -38,11 +37,11 @@ const display = localFont({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s · Dynacard Classifier Review",
-    default: "Dynacard Classifier Review",
+    template: "%s · VOC Artificial Lift",
+    default: "VOC Artificial Lift",
   },
   description:
-    "Review rod-pump downhole dynacards next to the typical shape of the label the classifier predicted.",
+    "Verdun artificial-lift dashboards: daily production, trends, setpoint changes, reviews and dynocard classifications.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -51,13 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${sans.variable} ${mono.variable} ${display.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <UserProvider>
-            <div className="flex min-h-full w-full flex-col">
-              <Header />
-              <main id="main" className="w-full flex-1">
-                {children}
-              </main>
-              <Footer />
-            </div>
+            <AppShell>{children}</AppShell>
             <Toaster richColors closeButton />
           </UserProvider>
         </ThemeProvider>

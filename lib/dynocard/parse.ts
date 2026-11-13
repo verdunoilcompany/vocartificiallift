@@ -1,4 +1,4 @@
-import { LOAD_BINS, type DynaCard } from "@/types/dynacard";
+import { LOAD_BINS, type DynoCard } from "@/types/dynocard";
 import { NO_PREDICTION } from "./labels";
 
 /** Minimal RFC-4180 CSV parser (quoted fields, escaped quotes, CRLF/LF). */
@@ -54,7 +54,7 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
  * Optional: NodeID, Date, SPM, Fillage, and an unnamed first column used as the row number.
  * Rows missing any of the 50 loads are skipped.
  */
-export function rowsToCards(rows: string[][]): DynaCard[] {
+export function rowsToCards(rows: string[][]): DynoCard[] {
   if (rows.length === 0) throw new CardParseError("The file is empty.");
 
   const head = rows[0].map((h) => h.trim());
@@ -77,7 +77,7 @@ export function rowsToCards(rows: string[][]): DynaCard[] {
     return Number.isFinite(v) ? round1(v) : null;
   };
 
-  const out: DynaCard[] = [];
+  const out: DynoCard[] = [];
   rows.slice(1).forEach((r, k) => {
     const L = loadIx.map((i) => parseFloat(r[i]));
     if (L.some((v) => !Number.isFinite(v))) return;

@@ -1,4 +1,4 @@
-import { LOAD_BINS } from "@/types/dynacard";
+import { LOAD_BINS } from "@/types/dynocard";
 
 /**
  * Normalized plunger position (0 = bottom of stroke, 1 = top) for each of the 50 bins.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CardParseError, parseCsv, rowsToCards } from "@/lib/dynacard/parse";
+import { CardParseError, parseCsv, rowsToCards } from "@/lib/dynocard/parse";
 
 const loads = (v: number) => Array.from({ length: 50 }, () => v);
 const header = ["", "NodeID", "Date", "SPM", "Fillage", "PredictedLabel", ...loads(0).map((_, i) => `L${i}`)];

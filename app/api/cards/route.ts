@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSampleCards } from "@/lib/cards-repo";
-import type { ApiError, CardsResponse } from "@/types/dynacard";
+import type { ApiError, CardsResponse } from "@/types/dynocard";
 
 export const dynamic = "force-dynamic";
 

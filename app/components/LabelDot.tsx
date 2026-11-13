@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { isFullPump } from "@/lib/dynacard/labels";
+import { isFullPump } from "@/lib/dynocard/labels";
 
 /** Small status dot: green for Full Pump, neutral for everything else. */
 export function LabelDot({ label, className }: { label: string; className?: string }) {

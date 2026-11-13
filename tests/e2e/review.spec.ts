@@ -4,10 +4,10 @@ const loadCols = Array.from({ length: 50 }, (_, i) => `L${i}`);
 
 test("shows sample cards, the signed-in user and a chart", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("heading", { level: 1, name: "Dynacard Classifier Review" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Dynocard Classifier Review" })).toBeVisible();
   await expect(page.getByTestId("username")).toHaveText("e2e-user");
   await expect(page.getByTestId("status")).toHaveText("Showing 25 sample cards.");
-  await expect(page.getByTestId("dynacard-plot").locator(".main-svg").first()).toBeVisible();
+  await expect(page.getByTestId("dynocard-plot").locator(".main-svg").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "The 10 labels the model can predict" })).toBeVisible();
   // Matches the artifact: no review chip and no reviewer notes.
   await expect(page.getByText("Needs review")).toHaveCount(0);

@@ -1,6 +1,6 @@
-# Dynacard Classifier Review
+# Dynocard Classifier Review
 
-Internal Verdun Data & Technology app for reviewing rod-pump downhole dynacards against the
+Internal Verdun Data & Technology app for reviewing rod-pump downhole dynocards against the
 label a classifier predicted. Migrated from a single-page HTML prototype into the standard VOC
 D&T Next.js stack (see `VOC DT App Stub.md`).
 
@@ -14,14 +14,19 @@ next to the typical shape of the predicted label, with the bins the model weighs
   predicted label; searchable/sortable card table; Plotly card viewer with a
   "Compare with" label and an importance overlay; a guide to the 10 labels.
 - No review flags or reviewer notes (removed on request to match the artifact).
+- Left-hand menu (`components/AppSidebar.tsx`, `AppShell.tsx`) with four optimization dashboards
+  modelled on the Ambyint/QuickSight screenshots: `/daily` (Daily Dashboard), `/trends`
+  (Trend Analysis), `/setpoints` (Setpoint Report), `/review` (Review). Field Summary was not
+  built (no screenshot). They read `/api/lift/*`, which serves **generated sample data** from
+  `lib/lift/sample.ts` (deterministic, runs to yesterday) until a real SQL source is wired up.
 - Uploads are parsed server-side and returned to the browser; nothing is stored.
 
 ## Resolved choices
 
 | Item | Value |
 | --- | --- |
-| App name | Dynacard Classifier Review |
-| Base path | `/dynacard` (`NEXT_PUBLIC_BASE_PATH`) |
+| App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
+| Base path | `/dynocard` (`NEXT_PUBLIC_BASE_PATH`) |
 | Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
@@ -45,15 +50,15 @@ next to the typical shape of the predicted label, with the bins the model weighs
 
 ```
 app/                 routes, layout, loading/error/not-found/global-error
-app/api/             cards (GET samples), cards/upload (POST csv/xlsx), model, user
-app/components/      page components (DynacardReview, CardTable, CardViewer, DynacardPlot, …)
+app/api/             cards (GET samples), cards/upload (POST csv/xlsx), model, user, lift/* (dashboards)
+app/components/      page components (DynocardReview, CardTable, CardViewer, DynocardPlot, …); lift/ = dashboards
 app/contexts/        UserContext.tsx
-app/hooks/           useDynacards (data + upload), useCssColor (theme colors for Plotly)
-components/          Header, Footer, ThemeProvider, ThemeToggle
+app/hooks/           useDynocards (data + upload), useCssColor (theme colors for Plotly)
+components/          AppShell, AppSidebar, Header, Footer, ThemeProvider, ThemeToggle
 components/ui/       shadcn components
 db/                  flat data files (only the two sample JSON files are committed)
 iis/iisnode.js       iisnode entry point (named-pipe PORT); copied into the standalone build
-lib/                 api.ts (basePath helpers), auth.ts, connectors, dynacard/ (parse, geometry, labels)
+lib/                 api.ts (basePath helpers), auth.ts, connectors, dynocard/ (parse, geometry, labels), lift/ (sample data, dates, colors)
 notes/               Claude-created notes
 public/              static files
 scripts/             prepare-standalone.mjs (postbuild)
@@ -64,7 +69,7 @@ types/               shared types
 ## Commands
 
 ```
-npm run dev          # http://localhost:3000/dynacard
+npm run dev          # http://localhost:3000/dynocard
 npm run typecheck    # tsc --noEmit (run dev or build once first so next-env.d.ts exists)
 npm run lint         # eslint .
 npm test             # vitest
@@ -91,7 +96,7 @@ system PATH. `scripts/install-iis-app.ps1 -PackagePath <standalone folder>` (run
 server) does steps 2 and 4 below, sets up the app pool and permissions, and smoke-tests `/api/user`.
 
 1. `npm ci && npm run build` on a machine with the same Node major as the server.
-2. Copy `.next/standalone/` to the IIS application folder for `/dynacard`. It contains
+2. Copy `.next/standalone/` to the IIS application folder for `/dynocard`. It contains
    `web.config`, `iisnode.js`, `server.js`, `.next/`, `public/`, `db/` and a trimmed `node_modules`.
 3. Put production env vars (`NEXT_PUBLIC_BASE_PATH` is baked in at build time) in IIS / a `.env`
    next to `iisnode.js`.

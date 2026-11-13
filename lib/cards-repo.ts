@@ -1,7 +1,7 @@
 import "server-only";
 import { promises as fs } from "fs";
 import path from "path";
-import type { DynaCard, ModelReference, SampleCardRow } from "@/types/dynacard";
+import type { DynoCard, ModelReference, SampleCardRow } from "@/types/dynocard";
 import { dataDir } from "@/lib/data-dir";
 
 async function readJson<T>(file: string): Promise<T> {
@@ -10,7 +10,7 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 /** The 25 sample cards shipped in db/sample-cards.json. */
-export async function getSampleCards(): Promise<DynaCard[]> {
+export async function getSampleCards(): Promise<DynoCard[]> {
   const rows = await readJson<SampleCardRow[]>("sample-cards.json");
   return rows.map((r, k) => ({ ...r, id: `${r.row}|${r.node}|${k}` }));
 }

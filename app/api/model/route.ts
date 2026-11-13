@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getModelReference } from "@/lib/cards-repo";
-import type { ApiError, ModelReference } from "@/types/dynacard";
+import type { ApiError, ModelReference } from "@/types/dynocard";
 
 export const dynamic = "force-dynamic";
 

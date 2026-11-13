@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CardParseError, parseCsv, rowsToCards } from "@/lib/dynacard/parse";
+import { CardParseError, parseCsv, rowsToCards } from "@/lib/dynocard/parse";
 import { readWorkbookRows } from "@/lib/excel";
-import type { ApiError, CardsResponse } from "@/types/dynacard";
+import type { ApiError, CardsResponse } from "@/types/dynocard";
 
 export const dynamic = "force-dynamic";
 

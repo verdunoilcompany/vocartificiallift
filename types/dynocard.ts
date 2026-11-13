@@ -2,8 +2,8 @@
 export const LOAD_BINS = 50;
 export const UPSTROKE_BINS = 25;
 
-/** A single downhole dynacard with the classifier's predicted label. */
-export interface DynaCard {
+/** A single downhole dynocard with the classifier's predicted label. */
+export interface DynoCard {
   /** Stable key for React lists (row + node + index). */
   id: string;
   /** Row number from the source file. */
@@ -23,7 +23,7 @@ export interface DynaCard {
 }
 
 /** Raw sample row as stored in db/sample-cards.json. */
-export type SampleCardRow = Omit<DynaCard, "id">;
+export type SampleCardRow = Omit<DynoCard, "id">;
 
 /** Model metadata: typical shape per label and per-bin feature importance. */
 export interface ModelReference {
@@ -36,7 +36,7 @@ export interface ModelReference {
 export type CardSource = "sample" | "upload";
 
 export interface CardsResponse {
-  cards: DynaCard[];
+  cards: DynoCard[];
   source: CardSource;
   fileName?: string;
 }

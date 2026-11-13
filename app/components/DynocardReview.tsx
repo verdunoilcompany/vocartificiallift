@@ -7,16 +7,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDynacards } from "@/app/hooks/useDynacards";
-import { FULL_PUMP } from "@/lib/dynacard/labels";
+import { useDynocards } from "@/app/hooks/useDynocards";
+import { FULL_PUMP } from "@/lib/dynocard/labels";
 import { CardTable } from "./CardTable";
 import { CardToolbar } from "./CardToolbar";
 import { CardViewer } from "./CardViewer";
 import { LabelFilterChips } from "./LabelFilterChips";
 import { LabelGuide } from "./LabelGuide";
 
-export function DynacardReview() {
-  const { cards, model, state, error, source, uploading, upload, showSample, retry } = useDynacards();
+export function DynocardReview() {
+  const { cards, model, state, error, source, uploading, upload, showSample, retry } = useDynocards();
   const [filter, setFilter] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Compare choice is remembered per card; switching cards resets it to that card's label.
@@ -53,7 +53,7 @@ export function DynacardReview() {
       <section className="grid gap-2" aria-labelledby="page-title">
         <span className="eyebrow">Verdun · Rod pump downhole cards</span>
         <h1 id="page-title" className="text-4xl leading-none">
-          Dynacard Classifier Review
+          Dynocard Classifier Review
         </h1>
         <p className="max-w-[72ch] text-muted-foreground">
           Each card is gridded and binned into 50 loads: L0–L24 going up, L25–L49 coming down. Pick a card
