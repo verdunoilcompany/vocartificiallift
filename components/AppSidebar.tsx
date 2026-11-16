@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   Compass,
+  Sunrise,
   GitCompareArrows,
   LayoutDashboard,
   LineChart,
@@ -38,6 +39,7 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "Dynocard Classifier", icon: Activity },
       { href: "/explorer", label: "Dynocard Explorer", icon: Compass },
+      { href: "/morning-report", label: "Morning Reports", icon: Sunrise },
     ],
   },
 ];

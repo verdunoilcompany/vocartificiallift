@@ -67,3 +67,29 @@ export function timeSpan(
     .sort();
   return keys.length ? { min: keys[0], max: keys[keys.length - 1] } : null;
 }
+
+export type TimeSort = "file" | "asc" | "desc";
+
+/**
+ * Orders items by their date-and-time stamp (to the minute): "asc" oldest first, "desc" newest
+ * first, "file" keeps the original order. Undated items always go last; ties keep file order.
+ */
+export function sortByTime<T>(
+  items: T[],
+  dir: TimeSort,
+  getDate: (item: T) => string | null | undefined,
+): T[] {
+  if (dir === "file") return items;
+  const keyed = items.map((item, i) => ({
+    item,
+    i,
+    k: cardTimeKey(getDate(item)),
+  }));
+  keyed.sort((a, b) => {
+    if (a.k === b.k) return a.i - b.i;
+    if (a.k === null) return 1;
+    if (b.k === null) return -1;
+    return dir === "asc" ? a.k.localeCompare(b.k) : b.k.localeCompare(a.k);
+  });
+  return keyed.map((x) => x.item);
+}

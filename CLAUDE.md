@@ -30,7 +30,21 @@ next to the typical shape of the predicted label, with the bins the model weighs
   (Trend Analysis), `/setpoints` (Setpoint Report), `/review` (Review). Field Summary was not
   built (no screenshot). They read `/api/lift/*`, which serves **generated sample data** from
   `lib/lift/sample.ts` (deterministic, runs to yesterday) until a real SQL source is wired up.
-- Uploads are parsed server-side and returned to the browser; nothing is stored.
+- **Live data (XSPOC):** the Daily Dashboard ends with a "Well Run Status" grid
+  (`app/components/lift/WellStatusTable.tsx`) fed by `/api/xspoc/well-status`, which runs the
+  business-supplied query in `lib/xspoc/well-status.ts` against `tblNodeMaster`/`tblWellDetails`.
+  Run Status is red for "Shutdown…", plain for "Running…", yellow otherwise. Auto-refreshes every
+  5 min. It ignores the sample-data controls above it.
+- **Morning Reports** (`/morning-report`, under Dynocards): the XSPOC "EFD_Morning_Report" grid
+  for groups AT1 West/East/Central (query in `lib/xspoc/morning-report.ts`; columns, formatting,
+  highlight rules and CSV in `lib/xspoc/morning-report-columns.ts`). Area/Well dropdowns, column
+  filter row, Refresh + "Last Refresh" time, optional 5-min auto refresh, Export CSV (current
+  filtered view). **6 AM snapshots:** `instrumentation.ts` → `instrumentation-node.ts` starts a
+  scheduler that saves the full report to `db/morning-reports/YYYY-MM-DD.json` at 06:00 server
+  time; if the server was down at 6:00, the first visit that day captures it and flags it "late".
+  Users can view/download saved 6 AM reports or tick "Auto-download at 6 AM" (per browser).
+- Uploads are parsed server-side and returned to the browser; nothing is stored (the only files the
+  app writes are the morning-report snapshots).
 
 ## Resolved choices
 
@@ -38,7 +52,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
 | Base path | `/dynocard` (`NEXT_PUBLIC_BASE_PATH`) |
-| Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload |
+| Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
 | Repo | github.com/ypokraverdun/vocartificiallift |
@@ -51,8 +65,11 @@ next to the typical shape of the predicted label, with the bins the model weighs
   `brand.accent` #dc2626 → `--destructive`).
 - Plotly (`plotly.js-dist`, dynamically imported client-side) for the card chart.
 - TanStack Table **v8** for tables. Lucide icons. Sonner toasts. next-themes for light/dark.
-- Data connectors in `/lib`, all `import "server-only"`: `excel.ts` (exceljs), `mssql.ts`,
-  `postgres.ts` (pools ready, not yet used). Mapbox token helper in `lib/mapbox.ts` (unused).
+- Data connectors in `/lib`, all `import "server-only"`: `excel.ts` (exceljs), `mssql.ts`
+  (in use for XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_DRIVER`/`SQL_AUTH=windows` → `msnodesqlv8`
+  ODBC driver, `ApplicationIntent=ReadOnly`; `MSSQL_*` SQL-login fallback via tedious),
+  `postgres.ts` (pool ready, not used). DATETIME values are wall-clock; format them with
+  `sqlDateTimeToText()` (reads UTC parts) so they aren't shifted. Mapbox token helper in `lib/mapbox.ts` (unused).
 - Fonts are self-hosted from `@fontsource/*` via `next/font/local` so builds need no internet.
 - Vitest (unit, `tests/unit`) and Playwright (e2e, `tests/e2e`, runs the standalone build).
 - npm only. Node 20+ (developed on Node 24 LTS).
@@ -112,4 +129,10 @@ server) does steps 2 and 4 below, sets up the app pool and permissions, and smok
 3. Put production env vars (`NEXT_PUBLIC_BASE_PATH` is baked in at build time) in IIS / a `.env`
    next to `iisnode.js`.
 4. In IIS Manager enable Windows Authentication and disable Anonymous on the application.
+5. XSPOC: the server needs ODBC Driver 18 for SQL Server, and the IIS app pool identity (or the
+   service account it runs as) needs read access to `XSPOC` on `VOC-SQL05`.
+6. Morning-report snapshots: the app pool identity needs write access to `db/morning-reports`
+   (or `MORNING_REPORT_DIR`). For an on-time 6:00 capture, keep the app running: app pool
+   Start Mode = AlwaysRunning, Idle Time-out = 0, and preload enabled; otherwise the first visit
+   after 6:00 captures it late.
    `web.config` promotes `AUTH_USER`/`LOGON_USER`/`REMOTE_USER` to `x-iisnode-*` headers.

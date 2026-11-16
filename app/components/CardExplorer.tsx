@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ArrowDownUp, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { sortByTime, type TimeSort } from "@/lib/dynocard/card-time";
 import { FULL_PUMP } from "@/lib/dynocard/labels";
 import type { DynoCard, ModelReference } from "@/types/dynocard";
 import { CardViewer } from "./CardViewer";
@@ -39,7 +40,13 @@ export function CardExplorer({ cards, model }: CardExplorerProps) {
 
   // Cards the user closed; they drop out of the list (later cards move up) until restored.
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
-  const shown = cards.filter((c) => !hidden.has(c.id));
+  // Order by the card's date-and-time stamp (or keep file order), then drop closed cards.
+  const [timeSort, setTimeSort] = useState<TimeSort>("file");
+  const shown = sortByTime(
+    cards.filter((c) => !hidden.has(c.id)),
+    timeSort,
+    (c) => c.date,
+  );
   const hiddenCount = cards.length - shown.length;
   const hide = (id: string) => setHidden((h) => new Set(h).add(id));
 
@@ -97,7 +104,7 @@ export function CardExplorer({ cards, model }: CardExplorerProps) {
     <section aria-label="Card explorer" className="grid gap-5">
       {/* Sticky under the app header so the page size and paging stay reachable while scrolling. */}
       <div className="sticky top-14 z-20 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border bg-card/95 px-3 py-2 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Label htmlFor="page-size" className="text-sm">
             Cards per page
           </Label>
@@ -121,6 +128,33 @@ export function CardExplorer({ cards, model }: CardExplorerProps) {
                   {n}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Label
+            htmlFor="time-sort"
+            className="ml-2 flex items-center gap-1 text-sm"
+          >
+            <ArrowDownUp className="h-4 w-4" aria-hidden /> Sort by date &amp;
+            time
+          </Label>
+          <Select
+            value={timeSort}
+            onValueChange={(v) => {
+              setTimeSort(v as TimeSort);
+              setPage(0);
+            }}
+          >
+            <SelectTrigger
+              id="time-sort"
+              className="h-8 w-40"
+              data-testid="time-sort"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="file">File order</SelectItem>
+              <SelectItem value="desc">Newest first</SelectItem>
+              <SelectItem value="asc">Oldest first</SelectItem>
             </SelectContent>
           </Select>
           {hiddenCount > 0 && (

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cardTimeKey, inDateRange, timeSpan } from "@/lib/dynocard/card-time";
+import {
+  cardTimeKey,
+  inDateRange,
+  sortByTime,
+  timeSpan,
+} from "@/lib/dynocard/card-time";
 
 describe("cardTimeKey", () => {
   it("reads the common date formats", () => {
@@ -55,5 +60,25 @@ describe("timeSpan", () => {
       max: "2025-05-15",
     });
     expect(timeSpan([""])).toBeNull();
+  });
+});
+
+describe("sortByTime", () => {
+  const cards = [
+    { id: "a", date: "2025-05-15 10:40" },
+    { id: "b", date: "" },
+    { id: "c", date: "2025-05-15 08:46" },
+    { id: "d", date: "5/15/2025 10:41 AM" },
+    { id: "e", date: "2025-05-15 08:46" },
+  ];
+  const ids = (dir: "file" | "asc" | "desc") =>
+    sortByTime(cards, dir, (c) => c.date)
+      .map((c) => c.id)
+      .join("");
+
+  it("sorts by date and time, undated last, ties in file order", () => {
+    expect(ids("asc")).toBe("ceadb");
+    expect(ids("desc")).toBe("daceb");
+    expect(ids("file")).toBe("abcde");
   });
 });

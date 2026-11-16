@@ -46,6 +46,7 @@ import {
 import { PageTitle } from "./PageTitle";
 import { PlotlyChart } from "./PlotlyChart";
 import { StatTile } from "./StatTile";
+import { WellStatusTable } from "./WellStatusTable";
 import { EmptyState, ErrorState } from "./StatusStates";
 
 const STREAMS: { value: ProductionStream; label: string; unit: string }[] = [
@@ -219,6 +220,9 @@ export function DailyDashboard() {
           />
         </>
       )}
+
+      {/* Live data from XSPOC; independent of the sample-data controls above. */}
+      <WellStatusTable />
     </div>
   );
 }
