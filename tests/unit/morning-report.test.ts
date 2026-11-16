@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MORNING_COLUMNS,
+  REPORT_NAME_6AM,
   csvFileName,
   formatCell,
   runStatusTone,
@@ -78,7 +79,7 @@ describe("CSV export", () => {
       "Morning_Report_AT1-Central_2026-11-16_0600.csv",
     );
     expect(
-      csvFileName(null, new Date(2026, 10, 16, 9, 5), "Morning_Report_6AM"),
+      csvFileName(null, new Date(2026, 10, 16, 9, 5), REPORT_NAME_6AM),
     ).toBe("Morning_Report_6AM_All-Areas_2026-11-16_0905.csv");
   });
 });

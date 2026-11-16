@@ -21,13 +21,30 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/app/hooks/useApi";
 import { cn } from "@/lib/utils";
+import {
+  SCAN_AGE_RANGES,
+  ageText,
+  inScanAgeRange,
+  scanAgeHours,
+  type ScanAgeRange,
+} from "@/lib/xspoc/scan-age";
 import type { WellStatusResponse, WellStatusRow } from "@/types/xspoc";
 import { ErrorState } from "./StatusStates";
 
 const REFRESH_MS = 5 * 60_000;
+
+const DEFAULT_RANGE = "6+";
 
 /** Red for shutdowns, yellow for anything else that isn't running, plain when running. */
 export function runStatusTone(
@@ -60,6 +77,13 @@ const columns: ColumnDef<WellStatusRow>[] = [
     sortUndefined: "last",
   },
   {
+    id: "sinceScan",
+    header: "Since Last Scan",
+    // Sorting by age = sorting by scan time; wells never scanned count as oldest.
+    accessorFn: (r) => scanAgeHours(r.lastGoodScan, Date.now()) ?? Infinity,
+    enableColumnFilter: false,
+  },
+  {
     accessorKey: "runStatus",
     header: "Run Status",
     filterFn: "includesString",
@@ -90,6 +114,16 @@ export function WellStatusTable() {
   const { retry } = api;
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rangeId, setRangeId] = useState<string>(DEFAULT_RANGE);
+  const range: ScanAgeRange =
+    SCAN_AGE_RANGES.find((r) => r.id === rangeId) ?? SCAN_AGE_RANGES[0];
+  const allWells = range.min === null;
+  // Ages are measured against "now"; tick every minute so they stay current between refreshes.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Keep the grid current without a page reload.
   useEffect(() => {
@@ -98,8 +132,13 @@ export function WellStatusTable() {
   }, [retry]);
 
   const rows = useMemo(() => api.data?.rows ?? [], [api.data]);
+  // Wells whose last scan is within the chosen age range (all wells for "All wells").
+  const staleRows = useMemo(
+    () => rows.filter((r) => inScanAgeRange(r.lastGoodScan, range, now)),
+    [rows, range, now],
+  );
   const table = useReactTable({
-    data: rows,
+    data: staleRows,
     columns,
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
@@ -149,14 +188,38 @@ export function WellStatusTable() {
             {fetched && ` · updated ${fetched}`}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={retry}
-          disabled={api.isLoading}
-        >
-          <RefreshCw className={cn(api.isLoading && "animate-spin")} /> Refresh
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="grid gap-1">
+            <Label htmlFor="stale-hours" className="text-xs font-semibold">
+              Last scan
+            </Label>
+            <Select value={range.id} onValueChange={setRangeId}>
+              <SelectTrigger
+                id="stale-hours"
+                className="h-8 w-56 text-xs"
+                data-testid="stale-hours"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SCAN_AGE_RANGES.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.min === null ? o.label : `Not updated ${o.label}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={retry}
+            disabled={api.isLoading}
+          >
+            <RefreshCw className={cn(api.isLoading && "animate-spin")} />{" "}
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {api.error && !api.data ? (
@@ -255,7 +318,9 @@ export function WellStatusTable() {
                     >
                       {rows.length === 0
                         ? "XSPOC returned no enabled wells."
-                        : "No wells match these filters."}
+                        : staleRows.length === 0
+                          ? `No wells last scanned ${range.label} ago.`
+                          : "No wells match these filters."}
                     </td>
                   </tr>
                 ) : (
@@ -276,6 +341,12 @@ export function WellStatusTable() {
                         </th>
                         <td className="whitespace-nowrap border border-border px-2 py-1 font-mono text-xs tabular">
                           {scanText(r.lastGoodScan)}
+                        </td>
+                        <td
+                          className="whitespace-nowrap border border-border px-2 py-1 text-center font-mono text-xs tabular"
+                          data-testid="since-scan"
+                        >
+                          {ageText(scanAgeHours(r.lastGoodScan, now))}
                         </td>
                         <td
                           data-tone={tone}
@@ -305,16 +376,33 @@ export function WellStatusTable() {
               </tbody>
             </table>
           </div>
-          {columnFilters.length > 0 && (
-            <p className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-              Showing {shown.length} of {rows.length} wells.{" "}
-              <button
-                type="button"
-                className="underline"
-                onClick={() => setColumnFilters([])}
-              >
-                Clear filters
-              </button>
+          {(columnFilters.length > 0 || !allWells) && api.data && (
+            <p
+              className="flex flex-wrap gap-x-3 border-t px-3 py-1.5 text-xs text-muted-foreground"
+              data-testid="well-status-count"
+            >
+              <span>
+                Showing {shown.length} of {rows.length} wells
+                {!allWells && ` · not updated for ${range.label}`}
+              </span>
+              {!allWells && (
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => setRangeId("all")}
+                >
+                  Show all wells
+                </button>
+              )}
+              {columnFilters.length > 0 && (
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => setColumnFilters([])}
+                >
+                  Clear column filters
+                </button>
+              )}
             </p>
           )}
         </Card>

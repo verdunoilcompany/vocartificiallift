@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Inbox, RotateCcw } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDynocards } from "@/app/hooks/useDynocards";
+import { cardMatches, CONDITION_LABELS } from "@/lib/dynocard/conditions";
 import { FULL_PUMP } from "@/lib/dynocard/labels";
+import { PUMP_CONDITIONS, type PumpCondition } from "@/types/lift";
 import { inDateRange, type DateRange } from "@/lib/dynocard/card-time";
 import {
   matchesHierarchy,
@@ -61,6 +64,24 @@ export function DynocardReview({
   const [hierarchy, setHierarchy] = useState<HierarchyFilter>(EMPTY_HIERARCHY);
   const [dateRange, setDateRange] = useState<DateRange>(EMPTY_DATE_RANGE);
 
+  // Links from the Daily Dashboard condition tiles: ?condition=Gas%20Interference[&well=…]
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const conditionParam = params.get("condition");
+  const drillCondition = PUMP_CONDITIONS.includes(
+    conditionParam as PumpCondition,
+  )
+    ? (conditionParam as PumpCondition)
+    : null;
+  const drillWell = params.get("well");
+  // A model label (e.g. ?label=Full%20Pump), for links that aren't one of the 13 conditions.
+  const drillLabel = params.get("label");
+  const clearDrill = () => {
+    setSelectedId(null);
+    router.replace(pathname);
+  };
+
   const inScope = (
     c: (typeof cards)[number],
     h: HierarchyFilter,
@@ -80,14 +101,25 @@ export function DynocardReview({
   // Area/route/well and date filters first (Explorer only), then the label chips work within that set.
   const scoped = useMemo(
     () =>
-      hierarchyFilter
-        ? cards.filter(
-            (c) =>
-              matchesHierarchy(c.node, hierarchy) &&
-              inDateRange(c.date, dateRange),
-          )
-        : cards,
-    [cards, hierarchy, dateRange, hierarchyFilter],
+      cards.filter(
+        (c) =>
+          (!drillCondition || cardMatches(drillCondition, c.label)) &&
+          (!drillWell || c.node === drillWell) &&
+          (!drillLabel ||
+            c.label.trim().toLowerCase() === drillLabel.trim().toLowerCase()) &&
+          (!hierarchyFilter ||
+            (matchesHierarchy(c.node, hierarchy) &&
+              inDateRange(c.date, dateRange))),
+      ),
+    [
+      cards,
+      hierarchy,
+      dateRange,
+      hierarchyFilter,
+      drillCondition,
+      drillWell,
+      drillLabel,
+    ],
   );
   const visible = useMemo(
     () => scoped.filter((c) => filter === null || c.label === filter),
@@ -167,6 +199,46 @@ export function DynocardReview({
             <EmptyState />
           ) : (
             <>
+              {(drillCondition || drillWell || drillLabel) && (
+                <div
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm"
+                  data-testid="drill-banner"
+                >
+                  <span>
+                    Showing{" "}
+                    <span className="font-semibold">
+                      {drillCondition ?? drillLabel ?? "all"}
+                    </span>{" "}
+                    cards
+                    {drillWell && (
+                      <>
+                        {" "}
+                        for <span className="font-semibold">{drillWell}</span>
+                      </>
+                    )}{" "}
+                    · {scoped.length} card{scoped.length === 1 ? "" : "s"}
+                    {drillCondition && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        (model label:{" "}
+                        {drillCondition === "Bad Data"
+                          ? "any label other than Full Pump"
+                          : CONDITION_LABELS[drillCondition].join(", ")}
+                        )
+                      </span>
+                    )}
+                  </span>
+                  {source.kind !== "upload" && (
+                    <span className="text-destructive">
+                      The uploaded file isn&apos;t loaded here, so this is
+                      filtering the sample cards. Upload the file again.
+                    </span>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={clearDrill}>
+                    Show all cards
+                  </Button>
+                </div>
+              )}
               {hierarchyFilter && (
                 <WellHierarchyFilter
                   cards={cards}

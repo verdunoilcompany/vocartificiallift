@@ -30,11 +30,8 @@ import { useApi } from "@/app/hooks/useApi";
 import { ASPM_VAR } from "@/lib/lift/colors";
 import { cn } from "@/lib/utils";
 import {
-  PUMP_CONDITIONS,
-  WARNING_CONDITIONS,
   type DailyRow,
   type ProductionStream,
-  type PumpCondition,
   type WellsResponse,
 } from "@/types/lift";
 import {
@@ -45,7 +42,9 @@ import {
 } from "./Controls";
 import { PageTitle } from "./PageTitle";
 import { PlotlyChart } from "./PlotlyChart";
+import { ConditionTiles } from "./ConditionTiles";
 import { StatTile } from "./StatTile";
+import { WellConditionTable } from "./WellConditionTable";
 import { WellStatusTable } from "./WellStatusTable";
 import { EmptyState, ErrorState } from "./StatusStates";
 
@@ -223,6 +222,9 @@ export function DailyDashboard() {
 
       {/* Live data from XSPOC; independent of the sample-data controls above. */}
       <WellStatusTable />
+
+      {/* Per-well card counts for each condition; same source as the condition tiles. */}
+      <WellConditionTable rows={rows} loading={loading} />
     </div>
   );
 }
@@ -277,64 +279,6 @@ function ProductionCard({
       )}
     </Card>
   );
-}
-
-function ConditionTiles({
-  rows,
-  loading,
-}: {
-  rows: DailyRow[];
-  loading: boolean;
-}) {
-  const totalCards = rows.reduce((s, r) => s + r.dailyCardCount, 0);
-  const stats = PUMP_CONDITIONS.map((c) => {
-    const wells = rows.filter((r) => (r.conditions[c] ?? 0) > 0).length;
-    const cards = rows.reduce((s, r) => s + (r.conditions[c] ?? 0), 0);
-    return {
-      c,
-      wells,
-      pct: totalCards ? Math.round((cards / totalCards) * 100) : 0,
-    };
-  });
-  return (
-    <ul
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7"
-      aria-label="Pump conditions"
-    >
-      {stats.map(({ c, wells, pct }) => (
-        <li
-          key={c}
-          className="flex flex-col items-center justify-center gap-1 rounded-lg border bg-card p-3 text-center"
-        >
-          <span className="font-display text-base font-semibold leading-tight">
-            {c}
-          </span>
-          {loading ? (
-            <Skeleton className="h-6 w-10" />
-          ) : (
-            <>
-              <span
-                className={cn(
-                  "font-display text-2xl font-semibold tabular",
-                  conditionColor(c, wells),
-                )}
-              >
-                {wells}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {wells === 0 ? "All Good!" : `${pct}% of all cards`}
-              </span>
-            </>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function conditionColor(c: PumpCondition, n: number) {
-  if (n === 0) return "text-good";
-  return WARNING_CONDITIONS.includes(c) ? "text-warn" : "text-destructive";
 }
 
 function PieCard({

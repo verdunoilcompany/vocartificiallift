@@ -27,6 +27,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -39,6 +42,8 @@ import { useApi } from "@/app/hooks/useApi";
 import { apiUrl } from "@/lib/api";
 import {
   MORNING_COLUMNS,
+  REPORT_NAME,
+  REPORT_NAME_6AM,
   csvFileName,
   formatCell,
   toCsv,
@@ -53,6 +58,9 @@ import type {
 } from "@/types/xspoc";
 
 const LIVE = "live";
+/** Always the newest saved 6 AM copy; rolls over to the next morning by itself. */
+const LATEST_6AM = "latest-6am";
+const SNAPSHOT_POLL_MS = 60_000;
 const AUTO_REFRESH_MS = 5 * 60_000;
 const AUTO_DL_KEY = "voc-morning-autodownload";
 const AUTO_DL_LAST_KEY = "voc-morning-autodownload-last";
@@ -100,15 +108,23 @@ const localToday = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
 
-const timeText = (iso: string) => new Date(iso).toLocaleTimeString("en-US");
-const dateLabel = (s: MorningSnapshotInfo) => {
-  const [y, m, d] = s.date.split("-");
-  const at = new Date(s.capturedAt).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `6 AM report · ${m}/${d}/${y}${s.late ? ` (saved ${at})` : ""}`;
+/** "2026-11-16" → "11/16/2026" */
+const usDate = (d: string) => {
+  const [y, m, day] = d.split("-");
+  return `${m}/${day}/${y}`;
 };
+
+const timeText = (iso: string) => new Date(iso).toLocaleTimeString("en-US");
+const savedNote = (s: MorningSnapshotInfo) =>
+  s.late
+    ? ` (saved ${new Date(s.capturedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })})`
+    : "";
+const latestLabel = (s: MorningSnapshotInfo | undefined) =>
+  s
+    ? `6 AM report (latest) · ${usDate(s.date)}${savedNote(s)}`
+    : "6 AM report (latest)";
+const dayLabel = (s: MorningSnapshotInfo) =>
+  `6 AM report · ${usDate(s.date)}${savedNote(s)}`;
 
 const columns: ColumnDef<MorningReportRow>[] = MORNING_COLUMNS.map((c) => ({
   id: c.key,
@@ -127,6 +143,18 @@ export function MorningReport() {
   const [area, setArea] = useState<string | null>(null);
   const [well, setWell] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  // Comments are cut off to keep rows on one line; expand all, or one at a time by clicking.
+  const [expandComments, setExpandComments] = useState(false);
+  const [openComments, setOpenComments] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const toggleComment = (id: string) =>
+    setOpenComments((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [autoDownload, setAutoDownload] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -134,22 +162,34 @@ export function MorningReport() {
   const live = useApi<MorningReportResponse>(
     view === LIVE ? "/api/xspoc/morning-report" : null,
   );
-  const snap = useApi<MorningSnapshot>(
-    view === LIVE ? null : `/api/xspoc/morning-report/snapshots/${view}`,
-  );
   const snapshots = useApi<{ snapshots: MorningSnapshotInfo[] }>(
     "/api/xspoc/morning-report/snapshots",
+  );
+  const latest = snapshots.data?.snapshots[0];
+  const earlier = snapshots.data?.snapshots.slice(1) ?? [];
+  // "Latest" follows the newest snapshot (when a new morning's copy appears, this path changes
+  // and the table reloads with it); picking an earlier day stays on that day.
+  const snapDate =
+    view === LIVE ? null : view === LATEST_6AM ? (latest?.date ?? null) : view;
+  const snap = useApi<MorningSnapshot>(
+    snapDate ? `/api/xspoc/morning-report/snapshots/${snapDate}` : null,
   );
   const { retry: refreshLive } = live;
   const { retry: refreshSnapshots } = snapshots;
 
-  const current = view === LIVE ? live : snap;
+  const current =
+    view === LIVE
+      ? live
+      : {
+          ...snap,
+          isLoading: snap.isLoading || (snapshots.isLoading && !latest),
+          error: snap.error ?? (latest ? null : snapshots.error),
+        };
   const allRows = useMemo(
     () => (view === LIVE ? live.data?.rows : snap.data?.rows) ?? [],
     [view, live.data, snap.data],
   );
   const asOf = view === LIVE ? live.data?.fetchedAt : snap.data?.capturedAt;
-  const list = snapshots.data?.snapshots ?? [];
 
   const areas = useMemo(
     () => [...new Set(allRows.map((r) => r.area))].sort(),
@@ -186,6 +226,13 @@ export function MorningReport() {
     refreshSnapshots();
   };
 
+  // While showing the 6 AM report, check for a newer morning's copy every minute.
+  useEffect(() => {
+    if (view !== LATEST_6AM) return;
+    const t = setInterval(refreshSnapshots, SNAPSHOT_POLL_MS);
+    return () => clearInterval(t);
+  }, [view, refreshSnapshots]);
+
   // Live auto-refresh, like XSPOC's "Auto Refresh" box.
   useEffect(() => {
     if (!autoRefresh || view !== LIVE) return;
@@ -199,7 +246,7 @@ export function MorningReport() {
       csvFileName(
         well ?? area,
         asOf ? new Date(asOf) : new Date(),
-        view === LIVE ? "Morning_Report" : "Morning_Report_6AM",
+        view === LIVE ? REPORT_NAME : REPORT_NAME_6AM,
       ),
     );
 
@@ -212,9 +259,30 @@ export function MorningReport() {
     const s = (await res.json()) as MorningSnapshot;
     downloadCsv(
       s.rows,
-      csvFileName(null, new Date(s.capturedAt), "Morning_Report_6AM"),
+      csvFileName(null, new Date(s.capturedAt), REPORT_NAME_6AM),
     );
   }, []);
+
+  // Download button: an earlier day you picked stays that day; otherwise ask the server for the
+  // newest copy at click time, so a page left open overnight still gets this morning's report.
+  const downloadSixAm = async () => {
+    let date = view !== LIVE && view !== LATEST_6AM ? view : latest?.date;
+    if (view === LIVE || view === LATEST_6AM) {
+      try {
+        const res = await fetch(apiUrl("/api/xspoc/morning-report/snapshots"), {
+          cache: "no-store",
+        });
+        const body = (await res.json()) as {
+          snapshots?: MorningSnapshotInfo[];
+        };
+        date = body.snapshots?.[0]?.date ?? date;
+        refreshSnapshots();
+      } catch {
+        /* fall back to the copy already listed */
+      }
+    }
+    if (date) await downloadSnapshot(date).catch(() => undefined);
+  };
 
   // Optional: download today's 6 AM report automatically (once a day) while this page is open.
   useEffect(() => setAutoDownload(storage.get(AUTO_DL_KEY) === "1"), []);
@@ -240,8 +308,6 @@ export function MorningReport() {
     const t = setInterval(() => void check(), 60_000);
     return () => clearInterval(t);
   }, [autoDownload, downloadSnapshot, refreshSnapshots]);
-
-  const latest = list[0];
 
   return (
     <div className="grid w-full gap-5 px-4 py-6 md:px-6">
@@ -280,11 +346,24 @@ export function MorningReport() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={LIVE}>Live (current data)</SelectItem>
-                {list.map((s) => (
-                  <SelectItem key={s.date} value={s.date}>
-                    {dateLabel(s)}
-                  </SelectItem>
-                ))}
+                <SelectItem value={LATEST_6AM}>
+                  {latestLabel(latest)}
+                </SelectItem>
+                {earlier.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel className="text-xs text-muted-foreground">
+                        Earlier 6 AM reports
+                      </SelectLabel>
+                      {earlier.map((s) => (
+                        <SelectItem key={s.date} value={s.date}>
+                          {dayLabel(s)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -336,17 +415,14 @@ export function MorningReport() {
               size="sm"
               variant="outline"
               disabled={!latest}
-              onClick={() =>
-                latest &&
-                void downloadSnapshot(view === LIVE ? latest.date : view)
-              }
+              onClick={() => void downloadSixAm()}
               data-testid="download-6am"
               title={latest ? undefined : "No 6 AM report has been saved yet"}
             >
               <Download /> Download 6 AM report
               {latest && (
                 <span className="font-mono text-xs opacity-70">
-                  {(view === LIVE ? latest.date : view).slice(5)}
+                  {usDate(snapDate ?? latest.date)}
                 </span>
               )}
             </Button>
@@ -382,6 +458,22 @@ export function MorningReport() {
                 className="cursor-pointer font-normal"
               >
                 Auto Refresh (5 min)
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="expand-comments"
+                checked={expandComments}
+                onCheckedChange={(v) => {
+                  setExpandComments(v === true);
+                  setOpenComments(new Set());
+                }}
+              />
+              <Label
+                htmlFor="expand-comments"
+                className="cursor-pointer font-normal"
+              >
+                Show full comments
               </Label>
             </div>
           </div>
@@ -488,9 +580,11 @@ export function MorningReport() {
                       colSpan={columns.length}
                       className="border border-border py-10 text-center text-muted-foreground"
                     >
-                      {allRows.length === 0
-                        ? "XSPOC returned no wells for these areas."
-                        : "No wells match these filters."}
+                      {view === LATEST_6AM && !latest
+                        ? "No 6 AM report has been saved yet. One is saved every day at 6:00 AM."
+                        : allRows.length === 0
+                          ? "XSPOC returned no wells for these areas."
+                          : "No wells match these filters."}
                     </td>
                   </tr>
                 ) : (
@@ -504,11 +598,34 @@ export function MorningReport() {
                         const tone = c.tone?.(row.original) ?? null;
                         const value = formatCell(row.original, c);
                         const Cell = c.key === "well" ? "th" : "td";
+                        const isComment = c.key === "comment";
+                        const commentOpen =
+                          isComment &&
+                          (expandComments || openComments.has(row.id));
                         return (
                           <Cell
                             key={c.key}
                             scope={c.key === "well" ? "row" : undefined}
-                            title={value.length > 14 ? value : undefined}
+                            title={
+                              isComment && value
+                                ? commentOpen
+                                  ? "Click to collapse"
+                                  : `${value}
+
+Click to expand`
+                                : value.length > 14
+                                  ? value
+                                  : undefined
+                            }
+                            onClick={
+                              isComment && value && !expandComments
+                                ? () => toggleComment(row.id)
+                                : undefined
+                            }
+                            aria-expanded={
+                              isComment && value ? commentOpen : undefined
+                            }
+                            data-testid={isComment ? "comment-cell" : undefined}
                             data-tone={tone ?? undefined}
                             className={cn(
                               "whitespace-nowrap border border-border px-1.5 py-0.5",
@@ -521,7 +638,14 @@ export function MorningReport() {
                                 c.key === "comms" ||
                                 c.key === "hostAlarms") &&
                                 "max-w-[9rem] truncate",
-                              c.key === "comment" && "max-w-[14rem] truncate",
+                              isComment &&
+                                (commentOpen
+                                  ? "min-w-[22rem] max-w-[36rem] whitespace-pre-wrap break-words align-top"
+                                  : "max-w-[14rem] truncate"),
+                              isComment &&
+                                value &&
+                                !expandComments &&
+                                "cursor-pointer hover:underline",
                               tone && TONE_CLASS[tone],
                             )}
                           >

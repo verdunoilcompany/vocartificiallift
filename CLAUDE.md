@@ -34,7 +34,9 @@ next to the typical shape of the predicted label, with the bins the model weighs
   (`app/components/lift/WellStatusTable.tsx`) fed by `/api/xspoc/well-status`, which runs the
   business-supplied query in `lib/xspoc/well-status.ts` against `tblNodeMaster`/`tblWellDetails`.
   Run Status is red for "Shutdown…", plain for "Running…", yellow otherwise. Auto-refreshes every
-  5 min. It ignores the sample-data controls above it.
+  5 min. It ignores the sample-data controls above it. A "Last scan" filter (default: not updated
+  6 hours or more; the only other choice is All wells) plus a "Since Last Scan" column, computed in
+  `lib/xspoc/scan-age.ts` from the wall-clock Last Good Scan vs. the viewer's clock.
 - **Morning Reports** (`/morning-report`, under Dynocards): the XSPOC "EFD_Morning_Report" grid
   for groups AT1 West/East/Central (query in `lib/xspoc/morning-report.ts`; columns, formatting,
   highlight rules and CSV in `lib/xspoc/morning-report-columns.ts`). Area/Well dropdowns, column
@@ -42,8 +44,31 @@ next to the typical shape of the predicted label, with the bins the model weighs
   filtered view). **6 AM snapshots:** `instrumentation.ts` → `instrumentation-node.ts` starts a
   scheduler that saves the full report to `db/morning-reports/YYYY-MM-DD.json` at 06:00 server
   time; if the server was down at 6:00, the first visit that day captures it and flags it "late".
-  Users can view/download saved 6 AM reports or tick "Auto-download at 6 AM" (per browser).
-- Uploads are parsed server-side and returned to the browser; nothing is stored (the only files the
+  The Report dropdown is "Live" or "6 AM report (latest)", which always shows the newest saved
+  copy and polls every minute, so it rolls over to the next morning on its own. "Download 6 AM
+  report" downloads the copy being viewed (latest when on Live); the optional per-browser
+  "Auto-download at 6 AM" uses the latest. Earlier days are listed under "Earlier 6 AM reports"
+  in the same dropdown and stay fixed on that day.
+- **Condition tiles from uploads:** an upload on the Classifier or Explorer is published via
+  `UploadedPredictionsContext` (well/date/label per card, kept in localStorage) and the Daily
+  Dashboard's 13 condition tiles (`app/components/lift/ConditionTiles.tsx`) are computed from it
+  with the business mapping in `lib/dynocard/conditions.ts` (Bad Data = any label but Full Pump;
+  Tubing Movement, Worn Traveling Valve and Worn Barrel each feed two tiles). "Show sample cards"
+  or "Use default data" returns the tiles to the **bundled default**: `db/default-predictions.json`
+  (well/date/label per card from test_predictions.csv, 10,000 cards / 120 wells; served by
+  `/api/cards/default-predictions`, loaded once by `UploadedPredictionsContext`). The dashboard's
+  sample daily rows are only a fallback if that file can't be read. Links into the Classifier
+  appear only for uploads (the Classifier doesn't hold the default's cards). Clicking a tile opens a
+  dropdown of its wells (cards, latest date, model labels). With uploaded data, the dropdown's
+  header links to `/?condition=<tile>` (all that condition's cards in the Classifier) and each
+  well to `/?condition=<tile>&well=<NodeID>`; `DynocardReview` applies these as a banner filter
+  ("Show all cards" clears it). The full uploaded cards are shared too (localStorage
+  `voc-uploaded-cards`), so the Classifier and Explorer both reopen the last upload.
+- The Daily Dashboard ends with "Pump Conditions by Well" (`WellConditionTable.tsx`): one row per
+  well with total cards, Full Pump (uploads only) and cards per condition, plus a totals row; same
+  source as the tiles (`summarizeByWell` in `lib/dynocard/conditions.ts`). With uploads, each
+  number links to that well's cards for that condition in the Classifier.
+- Uploads are parsed server-side and returned to the browser; nothing is stored on the server (the only files the
   app writes are the morning-report snapshots).
 
 ## Resolved choices
@@ -52,7 +77,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
 | Base path | `/dynocard` (`NEXT_PUBLIC_BASE_PATH`) |
-| Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
+| Data | `db/sample-cards.json`, `db/model-reference.json`, `db/default-predictions.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
 | Repo | github.com/ypokraverdun/vocartificiallift |

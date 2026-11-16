@@ -1,7 +1,7 @@
 import type { MorningReportRow } from "@/types/xspoc";
 
 /**
- * Column layout of the XSPOC "EFD_Morning_Report" grid. Shared by the page, the CSV export
+ * Column layout of the XSPOC "EFD_Morning_Report_AT2" grid. Shared by the page, the CSV export
  * and the server, so the screen and the file always match. No server-only imports here.
  */
 
@@ -135,11 +135,15 @@ export function toCsv(rows: MorningReportRow[]): string {
   return "﻿" + lines.join("\r\n") + "\r\n";
 }
 
+/** CSV file-name labels for the live report and the saved 6 AM copy. */
+export const REPORT_NAME = "Morning_Report";
+export const REPORT_NAME_6AM = `${REPORT_NAME}_6AM`;
+
 /** "Morning_Report_AT1-Central_2026-11-16_0600.csv" */
 export function csvFileName(
   area: string | null,
   when: Date,
-  label = "Morning_Report",
+  label = REPORT_NAME,
 ): string {
   const p = (n: number) => String(n).padStart(2, "0");
   const stamp = `${when.getFullYear()}-${p(when.getMonth() + 1)}-${p(when.getDate())}_${p(when.getHours())}${p(when.getMinutes())}`;

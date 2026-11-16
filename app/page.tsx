@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import { DynocardReview } from "@/app/components/DynocardReview";
 
 export default function HomePage() {
-  return <DynocardReview />;
+  return (
+    <Suspense>
+      <DynocardReview />
+    </Suspense>
+  );
 }

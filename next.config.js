@@ -13,6 +13,7 @@ module.exports = {
   outputFileTracingIncludes: {
     "/api/cards": ["./db/**/*"],
     "/api/model": ["./db/**/*"],
+    "/api/cards/default-predictions": ["./db/**/*"],
     // exceljs → … → async-function / generator-function expose a `require.mjs` entry
     // (used on Node 22+) that the tracer misses.
     "/api/cards/upload": [
