@@ -73,9 +73,9 @@ export function WellConditionTable({
   const { predictions, defaultPredictions, defaultError } =
     useUploadedPredictions();
   const source = predictions ?? defaultPredictions;
-  // Links into the Classifier only work when the uploaded cards are loaded there.
-  const fromUpload = Boolean(predictions);
   const fromPredictions = Boolean(source);
+  // The Classifier holds the same cards (upload or samples), so numbers can link to it.
+  const fromUpload = fromPredictions;
   const data = useMemo(
     () => (source ? summarizeByWell(source.cards) : fromDailyRows(rows)),
     [source, rows],
@@ -158,15 +158,16 @@ export function WellConditionTable({
               </>
             ) : defaultPredictions ? (
               <>
-                default data:{" "}
+                default data: the{" "}
                 <span className="font-medium text-foreground">
-                  {defaultPredictions.fileName}
+                  {defaultPredictions.cards.length} sample cards
                 </span>{" "}
+                · click a number to open those cards in the Dynocard Classifier
                 · upload predictions on the Dynocard Classifier or Explorer to
                 use your own file
               </>
             ) : (
-              "dashboard data (the default predictions file could not be loaded)"
+              "dashboard data (the sample cards could not be loaded)"
             )}
           </p>
         </div>

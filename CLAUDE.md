@@ -43,7 +43,10 @@ next to the typical shape of the predicted label, with the bins the model weighs
   filter row, Refresh + "Last Refresh" time, optional 5-min auto refresh, Export CSV (current
   filtered view). **6 AM snapshots:** `instrumentation.ts` → `instrumentation-node.ts` starts a
   scheduler that saves the full report to `db/morning-reports/YYYY-MM-DD.json` at 06:00 server
-  time; if the server was down at 6:00, the first visit that day captures it and flags it "late".
+  time; a 5-minute watchdog retries while today's copy is missing (failed attempt, network not
+  up after the machine wakes, or 6:00 missed while asleep/stopped), and the first page visit
+  also catches up; any copy after 6:15 is flagged "late". On a laptop that sleeps overnight the
+  copy can only be taken after it wakes; a true 6:00 copy needs an always-on host (IIS).
   The Report dropdown is "Live" or "6 AM report (latest)", which always shows the newest saved
   copy and polls every minute, so it rolls over to the next morning on its own. "Download 6 AM
   report" downloads the copy being viewed (latest when on Live); the optional per-browser
@@ -54,11 +57,10 @@ next to the typical shape of the predicted label, with the bins the model weighs
   Dashboard's 13 condition tiles (`app/components/lift/ConditionTiles.tsx`) are computed from it
   with the business mapping in `lib/dynocard/conditions.ts` (Bad Data = any label but Full Pump;
   Tubing Movement, Worn Traveling Valve and Worn Barrel each feed two tiles). "Show sample cards"
-  or "Use default data" returns the tiles to the **bundled default**: `db/default-predictions.json`
-  (well/date/label per card from test_predictions.csv, 10,000 cards / 120 wells; served by
-  `/api/cards/default-predictions`, loaded once by `UploadedPredictionsContext`). The dashboard's
-  sample daily rows are only a fallback if that file can't be read. Links into the Classifier
-  appear only for uploads (the Classifier doesn't hold the default's cards). Clicking a tile opens a
+  or "Use default data" returns the tiles and the per-well table to the default: the same **25
+  sample cards** the Classifier shows (`/api/cards`, loaded once by `UploadedPredictionsContext`),
+  so their links into the Classifier work too. The dashboard's sample daily rows are only a
+  fallback if the sample cards can't be read. Clicking a tile opens a
   dropdown of its wells (cards, latest date, model labels). With uploaded data, the dropdown's
   header links to `/?condition=<tile>` (all that condition's cards in the Classifier) and each
   well to `/?condition=<tile>&well=<NodeID>`; `DynocardReview` applies these as a banner filter
@@ -77,7 +79,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
 | Base path | `/dynocard` (`NEXT_PUBLIC_BASE_PATH`) |
-| Data | `db/sample-cards.json`, `db/model-reference.json`, `db/default-predictions.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
+| Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
 | Repo | github.com/ypokraverdun/vocartificiallift |

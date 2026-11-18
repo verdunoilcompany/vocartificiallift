@@ -73,8 +73,8 @@ const sourceLabels = (c: PumpCondition) =>
 
 /**
  * The 13 pump-condition tiles. Uses the last uploaded predictions file when there is one
- * (see UploadedPredictionsContext), otherwise the bundled default (test_predictions.csv);
- * the dashboard's daily rows are only a fallback if the default can't be loaded.
+ * (see UploadedPredictionsContext), otherwise the 25 sample cards the Classifier shows;
+ * the dashboard's daily rows are only a fallback if those can't be loaded.
  * Click a tile to see which wells are behind the number.
  */
 export function ConditionTiles({
@@ -98,25 +98,59 @@ export function ConditionTiles({
 
   return (
     <div className="grid content-start gap-2">
-      {predictions && (
+      {/* One bar above the tiles, same layout for the sample cards and for an uploaded file. */}
+      {(predictions || defaultPredictions) && (
         <p
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs"
+          className={cn(
+            "flex items-start gap-2 rounded-md border px-3 py-1.5 text-xs",
+            predictions ? "border-primary/30 bg-primary/5" : "bg-muted/40",
+          )}
           data-testid="tiles-source"
         >
-          <FileUp className="h-3.5 w-3.5 text-primary" aria-hidden />
-          <span>
-            From <span className="font-medium">{predictions.fileName}</span> ·{" "}
-            {predictions.cards.length} cards · {wellCount} wells · uploaded{" "}
-            {new Date(predictions.uploadedAt).toLocaleString("en-US")}
+          <FileUp
+            className={cn(
+              "mt-px h-3.5 w-3.5 shrink-0",
+              predictions ? "text-primary" : "text-muted-foreground",
+            )}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1">
+            {predictions ? (
+              <>
+                From <span className="font-medium">{predictions.fileName}</span>{" "}
+                · {predictions.cards.length} cards · {wellCount} wells ·
+                uploaded{" "}
+                {new Date(predictions.uploadedAt).toLocaleString("en-US")}.
+              </>
+            ) : (
+              <>
+                Default data: the{" "}
+                <span className="font-medium">
+                  {defaultPredictions!.cards.length} sample cards
+                </span>{" "}
+                · {wellCount} wells. Upload predictions on the{" "}
+                <Link href="/" className="underline">
+                  Dynocard Classifier
+                </Link>{" "}
+                or{" "}
+                <Link href="/explorer" className="underline">
+                  Explorer
+                </Link>{" "}
+                to replace the default with your own file.
+              </>
+            )}{" "}
+            Click a tile to see its wells.
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={clear}
-          >
-            <X className="h-3 w-3" /> Use default data
-          </Button>
+          {predictions && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-my-0.5 h-6 shrink-0 px-2 text-xs"
+              onClick={clear}
+            >
+              <X className="h-3 w-3" /> Use default data
+            </Button>
+          )}
         </p>
       )}
       <ul
@@ -129,38 +163,11 @@ export function ConditionTiles({
               summary={s}
               loading={busy}
               fromPredictions={Boolean(source)}
-              linkable={Boolean(predictions)}
+              linkable={Boolean(source)}
             />
           </li>
         ))}
       </ul>
-      {!predictions && defaultPredictions && (
-        <p
-          className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border bg-muted/40 px-3 py-1.5 text-xs"
-          data-testid="tiles-source"
-        >
-          <FileUp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-          <span>
-            Default data:{" "}
-            <span className="font-medium">{defaultPredictions.fileName}</span> ·{" "}
-            {defaultPredictions.cards.length} cards · {wellCount} wells
-          </span>
-        </p>
-      )}
-      {!predictions && (
-        <p className="text-xs text-muted-foreground">
-          Upload predictions on the{" "}
-          <Link href="/" className="underline">
-            Dynocard Classifier
-          </Link>{" "}
-          or{" "}
-          <Link href="/explorer" className="underline">
-            Explorer
-          </Link>{" "}
-          to replace the default with your own file. Click a tile to see its
-          wells.
-        </p>
-      )}
     </div>
   );
 }
@@ -175,7 +182,7 @@ function ConditionTile({
   loading: boolean;
   /** Counts come from model labels (upload or default file): show the label mapping. */
   fromPredictions: boolean;
-  /** Links into the Classifier only work when the uploaded cards are loaded there. */
+  /** Links into the Classifier, which holds the same cards (upload or samples). */
   linkable: boolean;
 }) {
   const n = s.wells.length;

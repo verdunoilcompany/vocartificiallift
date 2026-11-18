@@ -23,7 +23,6 @@ playwright/.cache/
 db/*
 !db/sample-cards.json
 !db/model-reference.json
-!db/default-predictions.json
 !db/README.md
 
 # iisnode

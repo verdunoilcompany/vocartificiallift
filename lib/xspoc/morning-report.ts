@@ -206,14 +206,34 @@ export function ensureTodaySnapshot(
 }
 
 let timer: NodeJS.Timeout | null = null;
+let watchdog: NodeJS.Timeout | null = null;
+/** How often to re-check for a missed or failed capture (sleep, network down, DB busy). */
+const RETRY_MS = 5 * 60_000;
 
-/** Captures at 6:00 local time every day while the server is running. Called once at startup. */
+/**
+ * Captures at 6:00 local time every day while the server is running. Called once at startup.
+ * A timer fires just after 6:00; a 5-minute watchdog also retries whenever today's copy is
+ * still missing after 6:00, so a failed attempt (e.g. network not up yet after the machine
+ * wakes) or a missed 6:00 (machine asleep) is caught up within minutes instead of the next day.
+ */
 export function startMorningSnapshotScheduler() {
-  if (timer) return;
+  if (timer || watchdog) return;
+  let lastError = "";
   const run = () =>
-    ensureTodaySnapshot().catch((err) =>
-      console.error("Morning report snapshot failed:", err),
-    );
+    ensureTodaySnapshot()
+      .then(() => {
+        lastError = "";
+      })
+      .catch((err: unknown) => {
+        // Log each distinct failure once, not every 5 minutes.
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg !== lastError)
+          console.error(
+            "Morning report snapshot failed (will retry every 5 min):",
+            err,
+          );
+        lastError = msg;
+      });
   const scheduleNext = () => {
     const now = new Date();
     const next = new Date(now);
@@ -226,4 +246,6 @@ export function startMorningSnapshotScheduler() {
   };
   void run(); // catch up if the server started after 6:00 today
   scheduleNext();
+  watchdog = setInterval(() => void run(), RETRY_MS);
+  watchdog.unref?.();
 }

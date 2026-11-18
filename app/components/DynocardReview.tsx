@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDynocards } from "@/app/hooks/useDynocards";
+import { useUploadedPredictions } from "@/app/contexts/UploadedPredictionsContext";
 import { cardMatches, CONDITION_LABELS } from "@/lib/dynocard/conditions";
 import { FULL_PUMP } from "@/lib/dynocard/labels";
 import { PUMP_CONDITIONS, type PumpCondition } from "@/types/lift";
@@ -66,6 +67,7 @@ export function DynocardReview({
 
   // Links from the Daily Dashboard condition tiles: ?condition=Gas%20Interference[&well=…]
   const params = useSearchParams();
+  const { predictions: uploadedPredictions } = useUploadedPredictions();
   const router = useRouter();
   const pathname = usePathname();
   const conditionParam = params.get("condition");
@@ -228,7 +230,7 @@ export function DynocardReview({
                       </span>
                     )}
                   </span>
-                  {source.kind !== "upload" && (
+                  {uploadedPredictions && source.kind !== "upload" && (
                     <span className="text-destructive">
                       The uploaded file isn&apos;t loaded here, so this is
                       filtering the sample cards. Upload the file again.

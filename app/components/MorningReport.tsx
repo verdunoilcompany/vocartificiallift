@@ -196,7 +196,12 @@ export function MorningReport() {
     [allRows],
   );
   const wells = useMemo(
-    () => allRows.filter((r) => !area || r.area === area).map((r) => r.well),
+    // A well can come back twice (e.g. two rows in an XSPOC view), so list it once.
+    () => [
+      ...new Set(
+        allRows.filter((r) => !area || r.area === area).map((r) => r.well),
+      ),
+    ],
     [allRows, area],
   );
   const rows = useMemo(
@@ -213,7 +218,8 @@ export function MorningReport() {
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    getRowId: (r) => `${r.area}|${r.well}`,
+    // Index keeps ids unique when XSPOC returns the same well twice.
+    getRowId: (r, i) => `${r.area}|${r.well}|${i}`,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -325,8 +331,8 @@ export function MorningReport() {
       </section>
 
       <Card className="grid gap-4 p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="grid gap-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)]">
+          <div className="grid min-w-0 gap-1">
             <Label htmlFor="report-view" className="text-xs font-semibold">
               Report
             </Label>
@@ -339,7 +345,7 @@ export function MorningReport() {
             >
               <SelectTrigger
                 id="report-view"
-                className="h-8 text-xs"
+                className="h-8 min-w-0 text-xs [&>span]:min-w-0 [&>span]:truncate"
                 data-testid="report-view"
               >
                 <SelectValue />

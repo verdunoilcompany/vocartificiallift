@@ -36,8 +36,8 @@ interface Ctx {
   setFromCards: (fileName: string, cards: DynoCard[]) => void;
   clear: () => void;
   /**
-   * Bundled default for the dashboard tiles/table when nothing is uploaded
-   * (test_predictions.csv). Loaded once, only when needed.
+   * Default for the dashboard tiles/table when nothing is uploaded: the same 25 sample cards
+   * the Classifier shows. Loaded once, only when needed.
    */
   defaultPredictions: DefaultPredictions | null;
   defaultError: string | null;
@@ -111,15 +111,23 @@ export function UploadedPredictionsProvider({
     store(CARDS_KEY, cards);
   }, []);
 
-  // Fetch the bundled default the first time it's needed (no upload in this browser).
+  // Fetch the sample cards the first time they're needed (no upload in this browser).
   const needDefault = ready && !predictions && !defaultPredictions;
   useEffect(() => {
     if (!needDefault) return;
     let cancelled = false;
-    fetch(apiUrl("/api/cards/default-predictions"))
+    fetch(apiUrl("/api/cards"))
       .then(async (res) => {
         if (!res.ok) throw new Error(`Request failed (${res.status}).`);
-        return (await res.json()) as DefaultPredictions;
+        const body = (await res.json()) as { cards: DynoCard[] };
+        return {
+          fileName: "sample cards",
+          cards: body.cards.map((c) => ({
+            node: c.node,
+            date: c.date || null,
+            label: c.label,
+          })),
+        } satisfies DefaultPredictions;
       })
       .then((d) => {
         if (!cancelled) setDefaultPredictions(d);
