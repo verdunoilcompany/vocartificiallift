@@ -6,19 +6,23 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 
 import { apiUrl } from "@/lib/api";
+import { idbDelete, idbGet, idbSet } from "@/lib/browser-db";
 import type { PredictionCard } from "@/lib/dynocard/conditions";
 import type { DynoCard } from "@/types/dynocard";
 
 /**
  * The last predictions file uploaded on the Dynocard Classifier or Explorer, shared across
- * pages: the Daily Dashboard condition tiles use well/date/label per card, and the Classifier
- * and Explorer reopen the full cards (e.g. when a tile links to them). Saved in this browser so
- * it survives page changes and reloads. "Show sample cards" clears it.
+ * pages: the Daily Dashboard tiles/table use well/date/label per card, and the Classifier and
+ * Explorer reopen the full cards (e.g. when a tile links to them), so all three always show the
+ * same file. Kept only in this browser (IndexedDB, which holds large files such as 10,000
+ * cards; nothing is stored on the server). Other open tabs follow along. "Show sample cards"
+ * or "Use default data" clears it.
  */
 export interface UploadedPredictions {
   fileName: string;
@@ -31,7 +35,7 @@ interface Ctx {
   /** False until browser storage has been read; wait for it before choosing what to show. */
   ready: boolean;
   predictions: UploadedPredictions | null;
-  /** Full uploaded cards (with loads), or null if none or too large to keep after a reload. */
+  /** Full uploaded cards (with loads), or null if none or they couldn't be kept. */
   uploadedCards: DynoCard[] | null;
   setFromCards: (fileName: string, cards: DynoCard[]) => void;
   clear: () => void;
@@ -48,31 +52,57 @@ export interface DefaultPredictions {
   cards: PredictionCard[];
 }
 
-const STORAGE_KEY = "voc-uploaded-predictions";
-const CARDS_KEY = "voc-uploaded-cards";
+/** IndexedDB record: the whole upload, cards included. */
+interface StoredUpload {
+  fileName: string;
+  uploadedAt: string;
+  cards: DynoCard[];
+}
+
+const IDB_KEY = "uploaded-predictions";
+/** Small localStorage marker (the upload time) so other tabs notice uploads and clears. */
+const MARKER_KEY = "voc-uploaded-marker";
+/** Older versions kept the upload in localStorage (too small for large files); removed on load. */
+const LEGACY_PREDICTIONS_KEY = "voc-uploaded-predictions";
+const LEGACY_CARDS_KEY = "voc-uploaded-cards";
+
 const UploadedPredictionsContext = createContext<Ctx | undefined>(undefined);
 
-function store(key: string, value: unknown) {
+function lsSet(key: string, value: string | null) {
   try {
     if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
+    else localStorage.setItem(key, value);
   } catch {
-    /* storage full or blocked: still works for this visit, just not after a reload */
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
+    /* storage full or blocked: still works for this visit */
   }
 }
 
-function read<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
+const slim = (cards: DynoCard[]): PredictionCard[] =>
+  cards.map((c) => ({ node: c.node, date: c.date || null, label: c.label }));
+
+/**
+ * Reads the saved upload from IndexedDB. Only a complete upload (full cards) counts, so the
+ * Dashboard, Classifier and Explorer can never disagree. Leftovers from older versions, which
+ * kept only the tile summary in localStorage, are deleted.
+ */
+async function loadSaved(): Promise<{
+  predictions: UploadedPredictions | null;
+  cards: DynoCard[] | null;
+}> {
+  lsSet(LEGACY_PREDICTIONS_KEY, null);
+  lsSet(LEGACY_CARDS_KEY, null);
+  const stored = await idbGet<StoredUpload>(IDB_KEY);
+  if (stored && Array.isArray(stored.cards) && stored.cards.length > 0) {
+    return {
+      predictions: {
+        fileName: stored.fileName,
+        uploadedAt: stored.uploadedAt,
+        cards: slim(stored.cards),
+      },
+      cards: stored.cards,
+    };
   }
+  return { predictions: null, cards: null };
 }
 
 export function UploadedPredictionsProvider({
@@ -88,27 +118,45 @@ export function UploadedPredictionsProvider({
   const [defaultPredictions, setDefaultPredictions] =
     useState<DefaultPredictions | null>(null);
   const [defaultError, setDefaultError] = useState<string | null>(null);
+  // Bumped by every change made here, so a slower read can't overwrite a newer upload/clear.
+  const version = useRef(0);
 
-  useEffect(() => {
-    setPredictions(read<UploadedPredictions>(STORAGE_KEY));
-    setUploadedCards(read<DynoCard[]>(CARDS_KEY));
+  const reload = useCallback(async () => {
+    const mine = ++version.current;
+    const saved = await loadSaved();
+    if (mine !== version.current) return;
+    setPredictions(saved.predictions);
+    setUploadedCards(saved.cards);
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    void reload();
+    // Another tab uploaded or cleared a file: follow it.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === MARKER_KEY || e.key === null) void reload();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [reload]);
+
   const setFromCards = useCallback((fileName: string, cards: DynoCard[]) => {
+    version.current++;
+    const uploadedAt = new Date().toISOString();
     const value: UploadedPredictions = {
       fileName,
-      uploadedAt: new Date().toISOString(),
-      cards: cards.map((c) => ({
-        node: c.node,
-        date: c.date || null,
-        label: c.label,
-      })),
+      uploadedAt,
+      cards: slim(cards),
     };
     setPredictions(value);
     setUploadedCards(cards);
-    store(STORAGE_KEY, value);
-    store(CARDS_KEY, cards);
+    setReady(true);
+    void idbSet(IDB_KEY, { fileName, uploadedAt, cards } satisfies StoredUpload)
+      // If IndexedDB is unavailable the upload still works on every page for this visit;
+      // after a reload all pages go back to the samples together.
+      .then((ok) => {
+        if (ok) lsSet(MARKER_KEY, uploadedAt);
+      });
   }, []);
 
   // Fetch the sample cards the first time they're needed (no upload in this browser).
@@ -122,11 +170,7 @@ export function UploadedPredictionsProvider({
         const body = (await res.json()) as { cards: DynoCard[] };
         return {
           fileName: "sample cards",
-          cards: body.cards.map((c) => ({
-            node: c.node,
-            date: c.date || null,
-            label: c.label,
-          })),
+          cards: slim(body.cards),
         } satisfies DefaultPredictions;
       })
       .then((d) => {
@@ -146,10 +190,12 @@ export function UploadedPredictionsProvider({
   }, [needDefault]);
 
   const clear = useCallback(() => {
+    version.current++;
     setPredictions(null);
     setUploadedCards(null);
-    store(STORAGE_KEY, null);
-    store(CARDS_KEY, null);
+    lsSet(LEGACY_PREDICTIONS_KEY, null);
+    lsSet(LEGACY_CARDS_KEY, null);
+    void idbDelete(IDB_KEY).then(() => lsSet(MARKER_KEY, null));
   }, []);
 
   const value = useMemo(

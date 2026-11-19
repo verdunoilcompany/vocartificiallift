@@ -149,6 +149,27 @@ export function useDynocards() {
     if (ready) void loadSample();
   }, [ready, loadSample]);
 
+  // The shared upload changed elsewhere (e.g. uploaded or cleared in another tab): follow it so
+  // this page always shows the same cards as the Daily Dashboard.
+  const shownCards = useRef(cards);
+  shownCards.current = cards;
+  const shownKind = useRef(source.kind);
+  shownKind.current = source.kind;
+  useEffect(() => {
+    if (!ready || applied.current === 0) return; // first load handles it
+    if (uploadedCards && uploadedCards.length > 0) {
+      if (uploadedCards === shownCards.current) return;
+      applied.current = ++seq.current;
+      setCards(uploadedCards);
+      setSource({
+        kind: "upload",
+        fileName: predictions?.fileName ?? "uploaded file",
+      });
+    } else if (!predictions && shownKind.current === "upload") {
+      void loadSample();
+    }
+  }, [ready, uploadedCards, predictions, loadSample]);
+
   return {
     cards,
     model,

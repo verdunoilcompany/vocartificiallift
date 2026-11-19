@@ -53,7 +53,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
   "Auto-download at 6 AM" uses the latest. Earlier days are listed under "Earlier 6 AM reports"
   in the same dropdown and stay fixed on that day.
 - **Condition tiles from uploads:** an upload on the Classifier or Explorer is published via
-  `UploadedPredictionsContext` (well/date/label per card, kept in localStorage) and the Daily
+  `UploadedPredictionsContext` (well/date/label per card) and the Daily
   Dashboard's 13 condition tiles (`app/components/lift/ConditionTiles.tsx`) are computed from it
   with the business mapping in `lib/dynocard/conditions.ts` (Bad Data = any label but Full Pump;
   Tubing Movement, Worn Traveling Valve and Worn Barrel each feed two tiles). "Show sample cards"
@@ -64,8 +64,11 @@ next to the typical shape of the predicted label, with the bins the model weighs
   dropdown of its wells (cards, latest date, model labels). With uploaded data, the dropdown's
   header links to `/?condition=<tile>` (all that condition's cards in the Classifier) and each
   well to `/?condition=<tile>&well=<NodeID>`; `DynocardReview` applies these as a banner filter
-  ("Show all cards" clears it). The full uploaded cards are shared too (localStorage
-  `voc-uploaded-cards`), so the Classifier and Explorer both reopen the last upload.
+  ("Show all cards" clears it). The whole upload (full cards) is kept in the browser's IndexedDB
+  (`lib/browser-db.ts`, db `voc-artificial-lift`; localStorage can't hold 10,000 cards), so the
+  Dashboard, Classifier and Explorer always show the same file, also after a reload; a small
+  localStorage marker (`voc-uploaded-marker`) keeps other open tabs in sync. Browser only,
+  never the server.
 - The Daily Dashboard ends with "Pump Conditions by Well" (`WellConditionTable.tsx`): one row per
   well with total cards, Full Pump (uploads only) and cards per condition, plus a totals row; same
   source as the tiles (`summarizeByWell` in `lib/dynocard/conditions.ts`). With uploads, each
