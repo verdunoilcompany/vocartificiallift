@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUploadedPredictions } from "@/app/contexts/UploadedPredictionsContext";
+import { DataSourceBar } from "@/app/components/lift/ConditionTiles";
 import {
   summarizeByWell,
   type WellConditionRow,
@@ -147,28 +148,9 @@ export function WellConditionTable({
             Pump Conditions by Well
           </h2>
           <p className="text-sm text-muted-foreground">
-            Cards per condition for each well ·{" "}
-            {predictions ? (
-              <>
-                from{" "}
-                <span className="font-medium text-foreground">
-                  {predictions.fileName}
-                </span>{" "}
-                · click a number to open those cards in the Dynocard Classifier
-              </>
-            ) : defaultPredictions ? (
-              <>
-                default data: the{" "}
-                <span className="font-medium text-foreground">
-                  {defaultPredictions.cards.length} sample cards
-                </span>{" "}
-                · click a number to open those cards in the Dynocard Classifier
-                · upload predictions on the Dynocard Classifier or Explorer to
-                use your own file
-              </>
-            ) : (
-              "dashboard data (the sample cards could not be loaded)"
-            )}
+            Cards per condition for each well
+            {!source &&
+              " · dashboard data (the sample cards could not be loaded)"}
           </p>
         </div>
         <div className="relative">
@@ -185,6 +167,11 @@ export function WellConditionTable({
           />
         </div>
       </div>
+
+      <DataSourceBar
+        hint="Click a number to open those cards in the Dynocard Classifier."
+        testId="table-source"
+      />
 
       <Card className="overflow-hidden">
         <div className="max-h-[640px] overflow-auto">
