@@ -81,7 +81,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | Item | Value |
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
-| Base path | `/dynocard` (`NEXT_PUBLIC_BASE_PATH`) |
+| Base path | `/als` (`NEXT_PUBLIC_BASE_PATH`) |
 | Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
@@ -96,7 +96,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 - Plotly (`plotly.js-dist`, dynamically imported client-side) for the card chart.
 - TanStack Table **v8** for tables. Lucide icons. Sonner toasts. next-themes for light/dark.
 - Data connectors in `/lib`, all `import "server-only"`: `excel.ts` (exceljs), `mssql.ts`
-  (in use for XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_DRIVER`/`SQL_AUTH=windows` → `msnodesqlv8`
+  (in use for XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_AUTH=windows` (optional `SQL_DRIVER`, default ODBC Driver 18) → `msnodesqlv8`
   ODBC driver, `ApplicationIntent=ReadOnly`; `MSSQL_*` SQL-login fallback via tedious),
   `postgres.ts` (pool ready, not used). DATETIME values are wall-clock; format them with
   `sqlDateTimeToText()` (reads UTC parts) so they aren't shifted. Mapbox token helper in `lib/mapbox.ts` (unused).
@@ -127,7 +127,7 @@ types/               shared types
 ## Commands
 
 ```
-npm run dev          # http://localhost:3000/dynocard
+npm run dev          # http://localhost:3000/als
 npm run typecheck    # tsc --noEmit (run dev or build once first so next-env.d.ts exists)
 npm run lint         # eslint .
 npm test             # vitest
@@ -154,7 +154,7 @@ system PATH. `scripts/install-iis-app.ps1 -PackagePath <standalone folder>` (run
 server) does steps 2 and 4 below, sets up the app pool and permissions, and smoke-tests `/api/user`.
 
 1. `npm ci && npm run build` on a machine with the same Node major as the server.
-2. Copy `.next/standalone/` to the IIS application folder for `/dynocard`. It contains
+2. Copy `.next/standalone/` to the IIS application folder for `/als`. It contains
    `web.config`, `iisnode.js`, `server.js`, `.next/`, `public/`, `db/` and a trimmed `node_modules`.
 3. Put production env vars (`NEXT_PUBLIC_BASE_PATH` is baked in at build time) in IIS / a `.env`
    next to `iisnode.js`.

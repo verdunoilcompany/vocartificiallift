@@ -7,7 +7,7 @@ import type sqlTypes from "mssql";
  * Windows authentication (current setup, XSPOC on VOC-SQL05):
  *   SQL_SERVER=VOC-SQL05
  *   SQL_DATABASE=XSPOC
- *   SQL_DRIVER=ODBC Driver 18 for SQL Server
+ *   SQL_DRIVER=ODBC Driver 18 for SQL Server   (optional; this is the default)
  *   SQL_AUTH=windows
  * Uses the msnodesqlv8 driver (ODBC). The connection runs as the Windows account running Node:
  * your login locally, the IIS app pool identity on the server, which needs read access to the DB.
