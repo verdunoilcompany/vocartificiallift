@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/app/contexts/UserContext";
-import { UploadedPredictionsProvider } from "@/app/contexts/UploadedPredictionsContext";
+import { CardRangeProvider } from "@/app/contexts/CardRangeContext";
 
 // Fonts are self-hosted from @fontsource packages so builds don't need internet access.
 const sans = localFont({
@@ -82,10 +82,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <UserProvider>
-            <UploadedPredictionsProvider>
+            <CardRangeProvider>
               <AppShell>{children}</AppShell>
               <Toaster richColors closeButton />
-            </UploadedPredictionsProvider>
+            </CardRangeProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

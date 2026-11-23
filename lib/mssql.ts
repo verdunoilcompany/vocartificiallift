@@ -23,6 +23,40 @@ type Pool = sqlTypes.ConnectionPool;
 
 let poolPromise: Promise<Pool> | null = null;
 
+/** ODBC connection-string value, braced so characters like ; ^ = in passwords are safe. */
+const odbcValue = (v: string) => `{${v.replace(/}/g, "}}")}}`;
+
+/**
+ * Opens a read-only pool through the msnodesqlv8 ODBC driver. Windows auth when no user is
+ * given, otherwise a SQL login. Used for XSPOC (here) and MLDB (lib/mldb.ts).
+ */
+export async function openOdbcPool(opts: {
+  server: string;
+  database: string;
+  driver?: string;
+  user?: string;
+  password?: string;
+  trustServerCertificate?: boolean;
+}): Promise<Pool> {
+  const driver = opts.driver || "ODBC Driver 18 for SQL Server";
+  // Driver 18 encrypts by default; internal servers usually have a self-signed certificate.
+  const trust = opts.trustServerCertificate === false ? "no" : "yes";
+  const auth = opts.user
+    ? `UID=${odbcValue(opts.user)};PWD=${odbcValue(opts.password ?? "")};`
+    : "Trusted_Connection=yes;";
+  const connectionString =
+    `Driver={${driver}};Server=${opts.server};Database=${opts.database};` +
+    `${auth}TrustServerCertificate=${trust};ApplicationIntent=ReadOnly;`;
+  const mod = (await import("mssql/msnodesqlv8")) as unknown as {
+    default?: Sql;
+  } & Sql;
+  const sql = mod.default ?? mod;
+  return new sql.ConnectionPool({
+    connectionString,
+    pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },
+  } as unknown as sqlTypes.config).connect();
+}
+
 export function isWindowsAuth(): boolean {
   return (process.env.SQL_AUTH ?? "").toLowerCase() === "windows";
 }
@@ -44,20 +78,12 @@ async function connect(): Promise<Pool> {
         "SQL Server is not configured. Set SQL_SERVER and SQL_DATABASE.",
       );
     }
-    const driver = e.SQL_DRIVER || "ODBC Driver 18 for SQL Server";
-    // Driver 18 encrypts by default; internal servers usually have a self-signed certificate.
-    const trust = e.SQL_TRUST_SERVER_CERTIFICATE === "false" ? "no" : "yes";
-    const connectionString =
-      `Driver={${driver}};Server=${e.SQL_SERVER};Database=${e.SQL_DATABASE};` +
-      `Trusted_Connection=yes;TrustServerCertificate=${trust};ApplicationIntent=ReadOnly;`;
-    const mod = (await import("mssql/msnodesqlv8")) as unknown as {
-      default?: Sql;
-    } & Sql;
-    const sql = mod.default ?? mod;
-    return new sql.ConnectionPool({
-      connectionString,
-      pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },
-    } as unknown as sqlTypes.config).connect();
+    return openOdbcPool({
+      server: e.SQL_SERVER,
+      database: e.SQL_DATABASE,
+      driver: e.SQL_DRIVER,
+      trustServerCertificate: e.SQL_TRUST_SERVER_CERTIFICATE !== "false",
+    });
   }
 
   const { MSSQL_HOST, MSSQL_USER, MSSQL_PASSWORD, MSSQL_DATABASE } = e;

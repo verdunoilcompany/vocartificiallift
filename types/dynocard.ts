@@ -44,3 +44,27 @@ export interface CardsResponse {
 export interface ApiError {
   error: string;
 }
+
+/** GET /api/mldb/cards */
+export interface MldbCardsResponse {
+  cards: DynoCard[];
+  from: string;
+  to: string;
+  well: string | null;
+  fetchedAt: string;
+}
+
+/** GET /api/mldb/predictions (no loads; Daily Dashboard) */
+export interface MldbLabelsResponse {
+  cards: { node: string; date: string | null; label: string }[];
+  from: string;
+  to: string;
+  fetchedAt: string;
+}
+
+/** GET /api/mldb/wells */
+export interface MldbWell {
+  well: string;
+  cards: number;
+  lastCard: string | null;
+}

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { cssColor } from "@/app/hooks/useCssColor";
 import { useApi } from "@/app/hooks/useApi";
+import { useMldbLabels } from "@/app/hooks/useMldbLabels";
 import { ASPM_VAR } from "@/lib/lift/colors";
 import { cn } from "@/lib/utils";
 import {
@@ -88,6 +89,8 @@ export function DailyDashboard() {
   const [stream, setStream] = useState<ProductionStream>("oil");
   const [selected, setSelected] = useState<string | null>(params.get("well"));
   const filters = useWellFilters(wells);
+  // Dynocard predictions from MLDB for the shared date range (tiles + per-well table).
+  const mldb = useMldbLabels();
 
   useEffect(() => {
     if (wellsApi.data && !date) setDate(wellsApi.data.latestDate);
@@ -180,7 +183,7 @@ export function DailyDashboard() {
               label={selected ? "Well Selected" : "Total Well Count"}
               value={loading ? "…" : selected ? selected : rows.length}
             />
-            <ConditionTiles rows={scope} loading={loading} />
+            <ConditionTiles mldb={mldb} />
           </section>
 
           <section
@@ -223,8 +226,8 @@ export function DailyDashboard() {
       {/* Live data from XSPOC; independent of the sample-data controls above. */}
       <WellStatusTable />
 
-      {/* Per-well card counts for each condition; same source as the condition tiles. */}
-      <WellConditionTable rows={rows} loading={loading} />
+      {/* Per-well card counts for each condition (MLDB); same source as the condition tiles. */}
+      <WellConditionTable mldb={mldb} />
     </div>
   );
 }

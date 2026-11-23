@@ -40,8 +40,8 @@ export function CardExplorer({ cards, model }: CardExplorerProps) {
 
   // Cards the user closed; they drop out of the list (later cards move up) until restored.
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
-  // Order by the card's date-and-time stamp (or keep file order), then drop closed cards.
-  const [timeSort, setTimeSort] = useState<TimeSort>("file");
+  // Order by the card's date-and-time stamp (newest first by default), then drop closed cards.
+  const [timeSort, setTimeSort] = useState<TimeSort>("desc");
   const shown = sortByTime(
     cards.filter((c) => !hidden.has(c.id)),
     timeSort,
@@ -152,7 +152,6 @@ export function CardExplorer({ cards, model }: CardExplorerProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="file">File order</SelectItem>
               <SelectItem value="desc">Newest first</SelectItem>
               <SelectItem value="asc">Oldest first</SelectItem>
             </SelectContent>

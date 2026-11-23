@@ -75,20 +75,6 @@ export function CardViewer({
           <h2 id={titleId} className="truncate text-2xl leading-tight">
             {card.node}
           </h2>
-          <dl className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
-            <div className="flex gap-1.5">
-              <dt>SPM</dt>
-              <dd className="font-mono text-foreground tabular">
-                {card.spm ?? "–"}
-              </dd>
-            </div>
-            <div className="flex gap-1.5">
-              <dt>Fillage</dt>
-              <dd className="font-mono text-foreground tabular">
-                {card.fill != null ? `${card.fill}%` : "–"}
-              </dd>
-            </div>
-          </dl>
         </div>
         <div className="flex items-center gap-2">
           <Badge

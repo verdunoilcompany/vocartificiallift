@@ -45,15 +45,6 @@ const columns: ColumnDef<DynoCard>[] = [
     ),
   },
   { accessorKey: "label", header: "Label", enableHiding: true },
-  {
-    accessorKey: "fill",
-    header: "Fill %",
-    cell: ({ getValue }) => {
-      const v = getValue<number | null>();
-      return <span className="font-mono text-xs tabular">{v == null ? "–" : v.toFixed(1)}</span>;
-    },
-    sortUndefined: "last",
-  },
 ];
 
 export function CardTable({ cards, selectedId, onSelect }: CardTableProps) {

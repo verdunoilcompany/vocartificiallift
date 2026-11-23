@@ -10,16 +10,28 @@ Build the Dynocard viewer as a Next.js app following the VOC D&T stub. Each card
 50 scaled loads (L0–L24 upstroke, L25–L49 downstroke). The user picks a card and sees its shape
 next to the typical shape of the predicted label, with the bins the model weighs most highlighted.
 
-- One page (`/`): load predictions (CSV or .xlsx) or use the 25 bundled samples; filter by
-  predicted label; searchable/sortable card table; Plotly card viewer with a
-  "Compare with" label and an importance overlay; a guide to the 10 labels.
+- **Cards come from MLDB** (`MLDB.dyno.Prediction` on `VOC-SQL01-DEV`, SQL login `ML_SQL_*`,
+  read-only; `lib/mldb/`, `/api/mldb/cards|predictions|wells`). No upload or sample buttons
+  (removed on request). The Classifier, Explorer and the Daily Dashboard's tiles/table share one
+  From/To date range (`app/contexts/CardRangeContext.tsx`, localStorage `voc-card-range`, shared by
+  every page and open tab (a `storage` listener keeps tabs in sync); first visit yesterday–
+  today; rules in `lib/dynocard/card-range.ts`): all wells up to 14 days, one well up to 365 days
+  (~1,400 cards/day overall). The date inputs only offer days within the limit (`CardRangeFields`
+  min/max; a typed date moves the other end) and show a note with the limit; a saved range
+  that's too long is cut to the last N days (`useCardRangeFor`). SPM/fillage aren't shown (not
+  in MLDB).
+- One page (`/`): Well (every MLDB well) + Sort by date & time + From/To dates (no Area/Route,
+  removed on request); filter by predicted label;
+  searchable/sortable card table; Plotly card viewer with a "Compare with" label and an
+  importance overlay; a guide to the 10 labels.
 - No review flags or reviewer notes (removed on request to match the artifact).
 - `/explorer` (Dynocard Explorer, under Dynocards in the menu) is the same `DynocardReview`
   component with `hierarchyFilter`: cascading Area → Route → Well selects from
   `lib/dynocard/well-hierarchy.ts` (133 wells supplied by the business). Card NodeIDs match
-  case-insensitively, ignoring "#" and extra spaces. It also has From / To date filters (no time)
-  (whole days; `lib/dynocard/card-time.ts` parses the free-text card Date and compares its day;
-  undated cards are hidden only while a date range is set). It also passes `gallery`, which swaps the
+  case-insensitively, ignoring "#" and extra spaces. The Explorer only shows cards from wells
+  on that list ("All" = every listed well); the Classifier shows every MLDB well. Choosing a Well loads just that well from
+  MLDB (so the range can be longer). Its From / To dates are the shared range. It also passes
+  `gallery`, which swaps the
   table + single viewer for `CardExplorer`: every card on the page as a full `CardViewer` (own
   "Compare with" and importance toggle), 25/50/100 per page, sticky page-size/paging bar, viewers
   lazily mounted near the viewport. Each card has a top-right × that hides it (later cards move up,
@@ -52,29 +64,25 @@ next to the typical shape of the predicted label, with the bins the model weighs
   report" downloads the copy being viewed (latest when on Live); the optional per-browser
   "Auto-download at 6 AM" uses the latest. Earlier days are listed under "Earlier 6 AM reports"
   in the same dropdown and stay fixed on that day.
-- **Condition tiles from uploads:** an upload on the Classifier or Explorer is published via
-  `UploadedPredictionsContext` (well/date/label per card) and the Daily
-  Dashboard's 13 condition tiles (`app/components/lift/ConditionTiles.tsx`) are computed from it
-  with the business mapping in `lib/dynocard/conditions.ts` (Bad Data = any label but Full Pump;
-  Tubing Movement, Worn Traveling Valve and Worn Barrel each feed two tiles). "Show sample cards"
-  or "Use default data" returns the tiles and the per-well table to the default: the same **25
-  sample cards** the Classifier shows (`/api/cards`, loaded once by `UploadedPredictionsContext`),
-  so their links into the Classifier work too. The dashboard's sample daily rows are only a
-  fallback if the sample cards can't be read. Clicking a tile opens a
-  dropdown of its wells (cards, latest date, model labels). With uploaded data, the dropdown's
-  header links to `/?condition=<tile>` (all that condition's cards in the Classifier) and each
-  well to `/?condition=<tile>&well=<NodeID>`; `DynocardReview` applies these as a banner filter
-  ("Show all cards" clears it). The whole upload (full cards) is kept in the browser's IndexedDB
-  (`lib/browser-db.ts`, db `voc-artificial-lift`; localStorage can't hold 10,000 cards), so the
-  Dashboard, Classifier and Explorer always show the same file, also after a reload; a small
-  localStorage marker (`voc-uploaded-marker`) keeps other open tabs in sync. Browser only,
-  never the server.
+- **Condition tiles from MLDB:** the Daily Dashboard loads well/date/label for the shared range
+  once (`app/hooks/useMldbLabels.ts`, `/api/mldb/predictions`) and passes it to the 13 condition
+  tiles (`app/components/lift/ConditionTiles.tsx`) and the per-well table, computed with the
+  business mapping in `lib/dynocard/conditions.ts` (Bad Data = any label but Full Pump; Tubing
+  Movement, Worn Traveling Valve and Worn Barrel each feed two tiles). Both show the same
+  `DataSourceBar` (just the From/To dates, plus an error line if MLDB fails). Clicking a tile opens a dropdown of its wells; the header (condition · wells · cards)
+  and each well go straight to the Dynocard Classifier, and so does every number in the per-well
+  table (no menus, on request). Links come from `lib/dynocard/drill.ts`:
+  `?condition=` (or `?label=Full Pump`) `&well=&from=&to=`. `DynocardReview` puts from/to into
+  the shared range and the well into its own filters (Classifier: Well;
+  Explorer: Area/Route/Well), strips them from the URL, and keeps condition/label as a banner
+  filter. "Show all cards" clears condition and well (and the Explorer's area/route) and resets the dates to
+  yesterday–today. In the Explorer a linked well off the area/route list stays a banner filter. Same range → same cards, so counts match.
 - The Daily Dashboard ends with "Pump Conditions by Well" (`WellConditionTable.tsx`): one row per
   well with total cards, Full Pump (uploads only) and cards per condition, plus a totals row; same
-  source as the tiles (`summarizeByWell` in `lib/dynocard/conditions.ts`). With uploads, each
-  number links to that well's cards for that condition in the Classifier.
-- Uploads are parsed server-side and returned to the browser; nothing is stored on the server (the only files the
-  app writes are the morning-report snapshots).
+  source as the tiles (`summarizeByWell` in `lib/dynocard/conditions.ts`). Each number opens
+  that well's cards for that condition and date range in the Classifier.
+- The only files the app writes are the morning-report snapshots. `db/sample-cards.json` and
+  `/api/cards` remain (Playwright's health check) but no page shows the samples.
 
 ## Resolved choices
 
@@ -82,7 +90,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
 | Base path | `/als` (`NEXT_PUBLIC_BASE_PATH`) |
-| Data | `db/sample-cards.json`, `db/model-reference.json` (committed) + CSV/XLSX upload; live XSPOC (SQL Server `VOC-SQL05`, Windows auth, read-only) |
+| Data | MLDB `dyno.Prediction` (`VOC-SQL01-DEV`, SQL login, read-only) for cards; `db/model-reference.json` (committed); live XSPOC (`VOC-SQL05`, Windows auth, read-only) |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
 | Repo | github.com/ypokraverdun/vocartificiallift |
@@ -98,7 +106,8 @@ next to the typical shape of the predicted label, with the bins the model weighs
 - Data connectors in `/lib`, all `import "server-only"`: `excel.ts` (exceljs), `mssql.ts`
   (in use for XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_AUTH=windows` (optional `SQL_DRIVER`, default ODBC Driver 18) → `msnodesqlv8`
   ODBC driver, `ApplicationIntent=ReadOnly`; `MSSQL_*` SQL-login fallback via tedious),
-  `postgres.ts` (pool ready, not used). DATETIME values are wall-clock; format them with
+  `mldb/connection.ts` (MLDB via `openOdbcPool` with a SQL login: `ML_SQL_SERVER`/`ML_SQL_DATABASE`/
+  `ML_SQL_USER`/`ML_SQL_PASSWORD`), `postgres.ts` (pool ready, not used). DATETIME values are wall-clock; format them with
   `sqlDateTimeToText()` (reads UTC parts) so they aren't shifted. Mapbox token helper in `lib/mapbox.ts` (unused).
 - Fonts are self-hosted from `@fontsource/*` via `next/font/local` so builds need no internet.
 - Vitest (unit, `tests/unit`) and Playwright (e2e, `tests/e2e`, runs the standalone build).
@@ -108,10 +117,10 @@ next to the typical shape of the predicted label, with the bins the model weighs
 
 ```
 app/                 routes, layout, loading/error/not-found/global-error
-app/api/             cards (GET samples), cards/upload (POST csv/xlsx), model, user, lift/* (dashboards)
+app/api/             mldb/* (cards, predictions, wells), xspoc/*, model, user, cards (samples), lift/* (dashboards)
 app/components/      page components (DynocardReview, CardTable, CardViewer, DynocardPlot, …); lift/ = dashboards
-app/contexts/        UserContext.tsx
-app/hooks/           useDynocards (data + upload), useCssColor (theme colors for Plotly)
+app/contexts/        UserContext.tsx, CardRangeContext.tsx (shared MLDB date range)
+app/hooks/           useDynocards (MLDB cards), useMldbLabels (dashboard), useApi, useCssColor
 components/          AppShell, AppSidebar, Header, Footer, ThemeProvider, ThemeToggle
 components/ui/       shadcn components
 db/                  flat data files (only the two sample JSON files are committed)
@@ -160,7 +169,9 @@ server) does steps 2 and 4 below, sets up the app pool and permissions, and smok
    next to `iisnode.js`.
 4. In IIS Manager enable Windows Authentication and disable Anonymous on the application.
 5. XSPOC: the server needs ODBC Driver 18 for SQL Server, and the IIS app pool identity (or the
-   service account it runs as) needs read access to `XSPOC` on `VOC-SQL05`.
+   service account it runs as) needs read access to `XSPOC` on `VOC-SQL05`. MLDB uses the
+   `ML_SQL_*` SQL login from `.env` (keep that file out of git) and needs network access to
+   `VOC-SQL01-DEV`.
 6. Morning-report snapshots: the app pool identity needs write access to `db/morning-reports`
    (or `MORNING_REPORT_DIR`). For an on-time 6:00 capture, keep the app running: app pool
    Start Mode = AlwaysRunning, Idle Time-out = 0, and preload enabled; otherwise the first visit

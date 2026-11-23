@@ -21,65 +21,66 @@ import {
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUploadedPredictions } from "@/app/contexts/UploadedPredictionsContext";
 import { DataSourceBar } from "@/app/components/lift/ConditionTiles";
+import type { MldbLabels } from "@/app/hooks/useMldbLabels";
 import {
   summarizeByWell,
   type WellConditionRow,
 } from "@/lib/dynocard/conditions";
 import { FULL_PUMP } from "@/lib/dynocard/labels";
+import { usDay, type CardRange } from "@/lib/dynocard/card-range";
+import { drillHref } from "@/lib/dynocard/drill";
 import { cn } from "@/lib/utils";
-import {
-  PUMP_CONDITIONS,
-  type DailyRow,
-  type PumpCondition,
-} from "@/types/lift";
+import { PUMP_CONDITIONS, type PumpCondition } from "@/types/lift";
 
-/** Default (non-upload) rows from the dashboard's daily data. */
-function fromDailyRows(rows: DailyRow[]): WellConditionRow[] {
-  return rows
-    .map((r) => ({
-      well: r.well,
-      totalCards: r.dailyCardCount,
-      fullPump: null,
-      counts: Object.fromEntries(
-        PUMP_CONDITIONS.map((c) => [c, r.conditions[c] ?? 0]),
-      ) as Record<PumpCondition, number>,
-    }))
-    .sort((a, b) => a.well.localeCompare(b.well, undefined, { numeric: true }));
+/**
+ * A count in the table: click it to open those cards (this well, this condition or Full Pump,
+ * the dashboard's dates) in the Dynocard Classifier.
+ */
+function CountLink({
+  n,
+  well,
+  what,
+  filter,
+  range,
+}: {
+  n: number;
+  well: string;
+  /** "Gas Interference", "Full Pump", … for the tooltip. */
+  what: string;
+  filter: { condition?: string; label?: string };
+  range: CardRange;
+}) {
+  const days =
+    range.from === range.to
+      ? usDay(range.from)
+      : `${usDay(range.from)} – ${usDay(range.to)}`;
+  return (
+    <Link
+      href={drillHref("classifier", { ...filter, well, range })}
+      className="block px-2 py-1 underline-offset-2 hover:underline"
+      title={`${well} · ${what}: ${n} card${n === 1 ? "" : "s"} · ${days}. Open in the Dynocard Classifier`}
+      data-testid="count-link"
+    >
+      {n}
+    </Link>
+  );
 }
-
-const classifierHref = (condition: PumpCondition, well: string) =>
-  `/?${new URLSearchParams({ condition, well }).toString()}`;
-/** Full Pump isn't one of the 13 conditions, so it links by model label. */
-const fullPumpHref = (well: string) =>
-  `/?${new URLSearchParams({ label: FULL_PUMP, well }).toString()}`;
 
 /** Only Bad Data is highlighted (red); the other condition columns stay plain. */
 const toneClass = (c: PumpCondition) =>
   c === "Bad Data" ? "bg-destructive/10 text-destructive font-semibold" : "";
 
 /**
- * One row per well: total cards and how many cards fall in each pump condition.
- * Same source as the condition tiles: the uploaded predictions file, else the dashboard data.
+ * One row per well: total cards, Full Pump and how many cards fall in each pump condition.
+ * Same source as the condition tiles: MLDB predictions for the shared date range.
  */
-export function WellConditionTable({
-  rows,
-  loading,
-}: {
-  rows: DailyRow[];
-  loading: boolean;
-}) {
-  const { predictions, defaultPredictions, defaultError } =
-    useUploadedPredictions();
-  const source = predictions ?? defaultPredictions;
-  const fromPredictions = Boolean(source);
-  // The Classifier holds the same cards (upload or samples), so numbers can link to it.
-  const fromUpload = fromPredictions;
+export function WellConditionTable({ mldb }: { mldb: MldbLabels }) {
   const data = useMemo(
-    () => (source ? summarizeByWell(source.cards) : fromDailyRows(rows)),
-    [source, rows],
+    () => (mldb.cards ? summarizeByWell(mldb.cards) : []),
+    [mldb.cards],
   );
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState("");
@@ -88,22 +89,18 @@ export function WellConditionTable({
     () => [
       { id: "well", accessorKey: "well", header: "Well" },
       { id: "totalCards", accessorKey: "totalCards", header: "Total Cards" },
-      ...(fromPredictions
-        ? [
-            {
-              id: "fullPump",
-              accessorFn: (r: WellConditionRow) => r.fullPump ?? 0,
-              header: "Full Pump",
-            },
-          ]
-        : []),
+      {
+        id: "fullPump",
+        accessorFn: (r: WellConditionRow) => r.fullPump ?? 0,
+        header: "Full Pump",
+      },
       ...PUMP_CONDITIONS.map((c): ColumnDef<WellConditionRow> => ({
         id: c,
         accessorFn: (r) => r.counts[c],
         header: c,
       })),
     ],
-    [fromPredictions],
+    [],
   );
 
   const table = useReactTable({
@@ -133,8 +130,7 @@ export function WellConditionTable({
     return t;
   }, [shown]);
 
-  // Waiting for the default file (or, if it failed, for the dashboard rows).
-  const busy = !source && (!defaultError || loading);
+  const busy = mldb.loading;
 
   return (
     <section aria-labelledby="well-conditions-title" className="grid gap-3">
@@ -149,29 +145,39 @@ export function WellConditionTable({
           </h2>
           <p className="text-sm text-muted-foreground">
             Cards per condition for each well
-            {!source &&
-              " · dashboard data (the sample cards could not be loaded)"}
           </p>
         </div>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
+        <div className="flex flex-wrap items-start gap-3">
+          <DataSourceBar
+            mldb={mldb}
+            testId="table-source"
+            idPrefix="table-range"
+            className="w-full sm:w-80"
           />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search wells"
-            aria-label="Search wells"
-            className="h-8 w-56 pl-8 text-xs"
-          />
+          <div className="grid gap-1">
+            <Label
+              htmlFor="well-conditions-search"
+              className="text-xs font-semibold"
+            >
+              Search
+            </Label>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                id="well-conditions-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search wells"
+                aria-label="Search wells"
+                className="h-8 w-56 pl-8 text-xs"
+              />
+            </div>
+          </div>
         </div>
       </div>
-
-      <DataSourceBar
-        hint="Click a number to open those cards in the Dynocard Classifier."
-        testId="table-source"
-      />
 
       <Card className="overflow-hidden">
         <div className="max-h-[640px] overflow-auto">
@@ -263,28 +269,27 @@ export function WellConditionTable({
                       <td className="border border-border px-2 py-1 text-center font-mono font-semibold tabular">
                         {r.totalCards}
                       </td>
-                      {fromPredictions && (
-                        <td
-                          className={cn(
-                            "border border-border px-2 py-1 text-center font-mono tabular",
-                            r.fullPump && "bg-good-bg font-semibold text-good",
-                          )}
-                        >
-                          {r.fullPump && !fromUpload ? (
-                            r.fullPump
-                          ) : r.fullPump ? (
-                            <Link
-                              href={fullPumpHref(r.well)}
-                              className="block underline-offset-2 hover:underline"
-                              title={`Open ${r.well}'s Full Pump cards in the Dynocard Classifier`}
-                            >
-                              {r.fullPump}
-                            </Link>
-                          ) : (
-                            <span className="text-muted-foreground">–</span>
-                          )}
-                        </td>
-                      )}
+                      <td
+                        className={cn(
+                          "border border-border p-0 text-center font-mono tabular",
+                          r.fullPump && "bg-good-bg font-semibold text-good",
+                        )}
+                      >
+                        {r.fullPump ? (
+                          // Full Pump isn't one of the 13 conditions, so it links by model label.
+                          <CountLink
+                            n={r.fullPump}
+                            well={r.well}
+                            what={FULL_PUMP}
+                            filter={{ label: FULL_PUMP }}
+                            range={mldb.range}
+                          />
+                        ) : (
+                          <span className="block px-2 py-1 text-muted-foreground">
+                            –
+                          </span>
+                        )}
+                      </td>
                       {PUMP_CONDITIONS.map((c) => {
                         const n = r.counts[c];
                         return (
@@ -299,16 +304,14 @@ export function WellConditionTable({
                               <span className="block px-2 py-1 text-muted-foreground">
                                 –
                               </span>
-                            ) : fromUpload ? (
-                              <Link
-                                href={classifierHref(c, r.well)}
-                                className="block px-2 py-1 underline-offset-2 hover:underline"
-                                title={`Open ${r.well}'s ${c} cards in the Dynocard Classifier`}
-                              >
-                                {n}
-                              </Link>
                             ) : (
-                              <span className="block px-2 py-1">{n}</span>
+                              <CountLink
+                                n={n}
+                                well={r.well}
+                                what={c}
+                                filter={{ condition: c }}
+                                range={mldb.range}
+                              />
                             )}
                           </td>
                         );
@@ -330,11 +333,9 @@ export function WellConditionTable({
                   <td className="border border-border px-2 py-1 text-center font-mono tabular">
                     {totals.totalCards}
                   </td>
-                  {fromPredictions && (
-                    <td className="border border-border px-2 py-1 text-center font-mono tabular">
-                      {totals.fullPump}
-                    </td>
-                  )}
+                  <td className="border border-border px-2 py-1 text-center font-mono tabular">
+                    {totals.fullPump}
+                  </td>
                   {PUMP_CONDITIONS.map((c) => (
                     <td
                       key={c}
