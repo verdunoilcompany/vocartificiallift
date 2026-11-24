@@ -1,0 +1,26 @@
+# Recreated inside the image
+node_modules
+.next
+*.tsbuildinfo
+next-env.d.ts
+
+# Never bake secrets or local settings into the image
+.env
+.env.*
+!.env.example
+
+# Not needed to build
+.git
+.claude
+.vscode
+iis
+notes
+docs
+tests
+test-results
+playwright-report
+coverage
+*.md
+!db/README.md
+Dockerfile
+.dockerignore
