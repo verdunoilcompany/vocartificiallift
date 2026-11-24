@@ -1,13 +1,12 @@
 import "server-only";
 import type sqlTypes from "mssql";
 
-import { openOdbcPool } from "@/lib/mssql";
+import { openSqlPool } from "@/lib/mssql";
 
 /**
  * MLDB (dynocard predictions) on the dev SQL server, via a SQL login. Settings from .env:
  *   ML_SQL_SERVER, ML_SQL_DATABASE, ML_SQL_USER, ML_SQL_PASSWORD
- *   ML_SQL_DRIVER (optional, default ODBC Driver 18 for SQL Server)
- * Read-only (ApplicationIntent=ReadOnly); the app only runs SELECT queries.
+ * Uses the built-in JavaScript driver (no ODBC driver needed). Read-only; SELECT queries only.
  */
 let poolPromise: Promise<sqlTypes.ConnectionPool> | null = null;
 
@@ -28,12 +27,11 @@ function getPool() {
         ),
       );
     }
-    poolPromise = openOdbcPool({
+    poolPromise = openSqlPool({
       server: e.ML_SQL_SERVER!,
       database: e.ML_SQL_DATABASE!,
-      driver: e.ML_SQL_DRIVER,
-      user: e.ML_SQL_USER,
-      password: e.ML_SQL_PASSWORD,
+      user: e.ML_SQL_USER!,
+      password: e.ML_SQL_PASSWORD!,
     }).catch((err) => {
       poolPromise = null;
       throw err;

@@ -2,20 +2,20 @@ import "server-only";
 import type sqlTypes from "mssql";
 
 /**
- * Shared SQL Server connection pool. Settings come from .env.
+ * SQL Server connections, using the pure-JavaScript driver that ships with `mssql` (tedious):
+ * nothing has to be installed on the computer or server (no ODBC driver). Settings from .env.
  *
- * Windows authentication (current setup, XSPOC on VOC-SQL05):
- *   SQL_SERVER=VOC-SQL05
+ * XSPOC (VOC-SQL05):
+ *   SQL_SERVER=VOC-SQL05          (or HOST\INSTANCE, or HOST,PORT)
  *   SQL_DATABASE=XSPOC
- *   SQL_DRIVER=ODBC Driver 18 for SQL Server   (optional; this is the default)
- *   SQL_AUTH=windows
- * Uses the msnodesqlv8 driver (ODBC). The connection runs as the Windows account running Node:
- * your login locally, the IIS app pool identity on the server, which needs read access to the DB.
+ *   SQL_USER=...                  SQL login, or a Windows account when SQL_DOMAIN is set
+ *   SQL_PASSWORD=...
+ *   SQL_DOMAIN=...                (optional: sign in as DOMAIN\SQL_USER, a Windows account)
+ * MLDB uses the same helper with ML_SQL_* (lib/mldb/connection.ts).
  *
- * SQL login (fallback): MSSQL_HOST, MSSQL_USER, MSSQL_PASSWORD, MSSQL_DATABASE (+ MSSQL_PORT,
- * MSSQL_ENCRYPT, MSSQL_TRUST_SERVER_CERTIFICATE), via the default tedious driver.
- *
- * Connections ask for ApplicationIntent=ReadOnly; the app only runs SELECT queries.
+ * Connections are encrypted (the server's certificate is trusted, as internal servers are
+ * usually self-signed; set SQL_TRUST_SERVER_CERTIFICATE=false to require a valid one) and ask
+ * for read-only intent; the app only runs SELECT queries.
  */
 
 type Sql = typeof sqlTypes;
@@ -23,90 +23,74 @@ type Pool = sqlTypes.ConnectionPool;
 
 let poolPromise: Promise<Pool> | null = null;
 
-/** ODBC connection-string value, braced so characters like ; ^ = in passwords are safe. */
-const odbcValue = (v: string) => `{${v.replace(/}/g, "}}")}}`;
-
-/**
- * Opens a read-only pool through the msnodesqlv8 ODBC driver. Windows auth when no user is
- * given, otherwise a SQL login. Used for XSPOC (here) and MLDB (lib/mldb.ts).
- */
-export async function openOdbcPool(opts: {
+/** Opens a read-only connection pool. */
+export async function openSqlPool(opts: {
   server: string;
   database: string;
-  driver?: string;
-  user?: string;
-  password?: string;
-  trustServerCertificate?: boolean;
+  user: string;
+  password: string;
+  /** Set for a Windows (domain) account; otherwise `user` is a SQL login. */
+  domain?: string;
 }): Promise<Pool> {
-  const driver = opts.driver || "ODBC Driver 18 for SQL Server";
-  // Driver 18 encrypts by default; internal servers usually have a self-signed certificate.
-  const trust = opts.trustServerCertificate === false ? "no" : "yes";
-  const auth = opts.user
-    ? `UID=${odbcValue(opts.user)};PWD=${odbcValue(opts.password ?? "")};`
-    : "Trusted_Connection=yes;";
-  const connectionString =
-    `Driver={${driver}};Server=${opts.server};Database=${opts.database};` +
-    `${auth}TrustServerCertificate=${trust};ApplicationIntent=ReadOnly;`;
-  const mod = (await import("mssql/msnodesqlv8")) as unknown as {
-    default?: Sql;
-  } & Sql;
+  // "HOST\INSTANCE" or "HOST,PORT", as in SQL Server Management Studio.
+  const [hostPart, portPart] = opts.server.split(",");
+  const [host, instanceName] = hostPart.trim().split("\\");
+  const port = portPart ? Number(portPart.trim()) : undefined;
+  const mod = (await import("mssql")) as unknown as { default?: Sql } & Sql;
   const sql = mod.default ?? mod;
-  return new sql.ConnectionPool({
-    connectionString,
+  const config: sqlTypes.config = {
+    server: host,
+    ...(port ? { port } : {}),
+    database: opts.database,
+    connectionTimeout: 15_000,
+    requestTimeout: 60_000,
+    options: {
+      encrypt: true,
+      trustServerCertificate:
+        process.env.SQL_TRUST_SERVER_CERTIFICATE !== "false",
+      readOnlyIntent: true,
+      ...(instanceName ? { instanceName } : {}),
+    },
     pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },
-  } as unknown as sqlTypes.config).connect();
-}
-
-export function isWindowsAuth(): boolean {
-  return (process.env.SQL_AUTH ?? "").toLowerCase() === "windows";
+    ...(opts.domain
+      ? {
+          authentication: {
+            type: "ntlm",
+            options: {
+              domain: opts.domain,
+              userName: opts.user,
+              password: opts.password,
+            },
+          },
+        }
+      : { user: opts.user, password: opts.password }),
+  };
+  return new sql.ConnectionPool(config).connect();
 }
 
 export function isMssqlConfigured(): boolean {
   const e = process.env;
-  return isWindowsAuth()
-    ? Boolean(e.SQL_SERVER && e.SQL_DATABASE)
-    : Boolean(
-        e.MSSQL_HOST && e.MSSQL_USER && e.MSSQL_PASSWORD && e.MSSQL_DATABASE,
-      );
+  return Boolean(
+    e.SQL_SERVER && e.SQL_DATABASE && e.SQL_USER && e.SQL_PASSWORD,
+  );
 }
 
-async function connect(): Promise<Pool> {
+function connect(): Promise<Pool> {
   const e = process.env;
-  if (isWindowsAuth()) {
-    if (!e.SQL_SERVER || !e.SQL_DATABASE) {
-      throw new Error(
-        "SQL Server is not configured. Set SQL_SERVER and SQL_DATABASE.",
-      );
-    }
-    return openOdbcPool({
-      server: e.SQL_SERVER,
-      database: e.SQL_DATABASE,
-      driver: e.SQL_DRIVER,
-      trustServerCertificate: e.SQL_TRUST_SERVER_CERTIFICATE !== "false",
-    });
-  }
-
-  const { MSSQL_HOST, MSSQL_USER, MSSQL_PASSWORD, MSSQL_DATABASE } = e;
-  if (!MSSQL_HOST || !MSSQL_USER || !MSSQL_PASSWORD || !MSSQL_DATABASE) {
-    throw new Error(
-      "SQL Server is not configured. Set SQL_SERVER, SQL_DATABASE and SQL_AUTH=windows, or MSSQL_HOST, MSSQL_USER, MSSQL_PASSWORD, MSSQL_DATABASE.",
+  if (!isMssqlConfigured()) {
+    return Promise.reject(
+      new Error(
+        "XSPOC is not configured. Set SQL_SERVER, SQL_DATABASE, SQL_USER and SQL_PASSWORD (and SQL_DOMAIN for a Windows account).",
+      ),
     );
   }
-  const mod = (await import("mssql")) as unknown as { default?: Sql } & Sql;
-  const sql = mod.default ?? mod;
-  return new sql.ConnectionPool({
-    server: MSSQL_HOST,
-    port: Number(e.MSSQL_PORT || 1433),
-    user: MSSQL_USER,
-    password: MSSQL_PASSWORD,
-    database: MSSQL_DATABASE,
-    options: {
-      encrypt: e.MSSQL_ENCRYPT !== "false",
-      trustServerCertificate: e.MSSQL_TRUST_SERVER_CERTIFICATE === "true",
-      readOnlyIntent: true,
-    },
-    pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },
-  }).connect();
+  return openSqlPool({
+    server: e.SQL_SERVER!,
+    database: e.SQL_DATABASE!,
+    user: e.SQL_USER!,
+    password: e.SQL_PASSWORD!,
+    domain: e.SQL_DOMAIN || undefined,
+  });
 }
 
 export function getMssqlPool(): Promise<Pool> {

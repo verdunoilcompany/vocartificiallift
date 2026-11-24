@@ -90,7 +90,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 | --- | --- |
 | App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
 | Base path | `/als` (`NEXT_PUBLIC_BASE_PATH`) |
-| Data | MLDB `dyno.Prediction` (`VOC-SQL01-DEV`, SQL login, read-only) for cards; `db/model-reference.json` (committed); live XSPOC (`VOC-SQL05`, Windows auth, read-only) |
+| Data | MLDB `dyno.Prediction` (`VOC-SQL01-DEV`, SQL login, read-only) for cards; `db/model-reference.json` (committed); live XSPOC (`VOC-SQL05`, SQL login or Windows account via `SQL_USER`/`SQL_PASSWORD`[/`SQL_DOMAIN`], read-only). No ODBC driver anywhere |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |
 | Deploy | On-prem IIS + iisnode, `output: 'standalone'` |
 | Repo | github.com/ypokraverdun/vocartificiallift |
@@ -104,9 +104,12 @@ next to the typical shape of the predicted label, with the bins the model weighs
 - Plotly (`plotly.js-dist`, dynamically imported client-side) for the card chart.
 - TanStack Table **v8** for tables. Lucide icons. Sonner toasts. next-themes for light/dark.
 - Data connectors in `/lib`, all `import "server-only"`: `excel.ts` (exceljs), `mssql.ts`
-  (in use for XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_AUTH=windows` (optional `SQL_DRIVER`, default ODBC Driver 18) → `msnodesqlv8`
-  ODBC driver, `ApplicationIntent=ReadOnly`; `MSSQL_*` SQL-login fallback via tedious),
-  `mldb/connection.ts` (MLDB via `openOdbcPool` with a SQL login: `ML_SQL_SERVER`/`ML_SQL_DATABASE`/
+  (XSPOC: `SQL_SERVER`/`SQL_DATABASE`/`SQL_USER`/`SQL_PASSWORD`, optional `SQL_DOMAIN` = Windows account
+  via NTLM; `openSqlPool()` uses the pure-JS **tedious** driver bundled with `mssql`, so nothing is
+  installed on the machine: no ODBC driver, no `msnodesqlv8` (removed on request, as other PCs lacked
+  the driver); encrypted, server certificate trusted unless `SQL_TRUST_SERVER_CERTIFICATE=false`;
+  read-only intent),
+  `mldb/connection.ts` (MLDB via `openSqlPool` with a SQL login: `ML_SQL_SERVER`/`ML_SQL_DATABASE`/
   `ML_SQL_USER`/`ML_SQL_PASSWORD`), `postgres.ts` (pool ready, not used). DATETIME values are wall-clock; format them with
   `sqlDateTimeToText()` (reads UTC parts) so they aren't shifted. Mapbox token helper in `lib/mapbox.ts` (unused).
 - Fonts are self-hosted from `@fontsource/*` via `next/font/local` so builds need no internet.
@@ -168,10 +171,10 @@ server) does steps 2 and 4 below, sets up the app pool and permissions, and smok
 3. Put production env vars (`NEXT_PUBLIC_BASE_PATH` is baked in at build time) in IIS / a `.env`
    next to `iisnode.js`.
 4. In IIS Manager enable Windows Authentication and disable Anonymous on the application.
-5. XSPOC: the server needs ODBC Driver 18 for SQL Server, and the IIS app pool identity (or the
-   service account it runs as) needs read access to `XSPOC` on `VOC-SQL05`. MLDB uses the
-   `ML_SQL_*` SQL login from `.env` (keep that file out of git) and needs network access to
-   `VOC-SQL01-DEV`.
+5. SQL: nothing to install (no ODBC driver). Put the XSPOC sign-in (`SQL_USER`/`SQL_PASSWORD`, plus
+   `SQL_DOMAIN` for a Windows account) and the `ML_SQL_*` MLDB login in the `.env` next to
+   `iisnode.js` (keep it out of git). The server needs network access to `VOC-SQL05` and
+   `VOC-SQL01-DEV` on port 1433.
 6. Morning-report snapshots: the app pool identity needs write access to `db/morning-reports`
    (or `MORNING_REPORT_DIR`). For an on-time 6:00 capture, keep the app running: app pool
    Start Mode = AlwaysRunning, Idle Time-out = 0, and preload enabled; otherwise the first visit

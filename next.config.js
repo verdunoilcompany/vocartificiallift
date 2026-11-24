@@ -20,6 +20,5 @@ module.exports = {
       "./node_modules/generator-function/**/*",
     ],
   },
-  // msnodesqlv8 is a native (ODBC) module used for Windows authentication to SQL Server.
-  serverExternalPackages: ["exceljs", "mssql", "msnodesqlv8", "pg"],
+  serverExternalPackages: ["exceljs", "mssql", "pg"],
 };

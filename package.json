@@ -32,7 +32,6 @@
     "exceljs": "^4.4.0",
     "lucide-react": "^1.72.0",
     "mapbox-gl": "^3.35.0",
-    "msnodesqlv8": "^6.2.2",
     "mssql": "^12.7.14",
     "next": "^15.5.29",
     "next-themes": "^0.4.6",
