@@ -372,7 +372,7 @@ function DailyTable({
         enableSorting: false,
         cell: ({ row }) => (
           <Link
-            href={`/trends?well=${encodeURIComponent(row.original.well)}`}
+            href={`/trend-analysis?well=${encodeURIComponent(row.original.well)}`}
             onClick={(e) => e.stopPropagation()}
             className="text-sky-700 underline underline-offset-2 dark:text-sky-400"
           >

@@ -21,4 +21,15 @@ module.exports = {
     ],
   },
   serverExternalPackages: ["exceljs", "mssql", "pg"],
+  // Old page addresses (bookmarks, shared links) keep working; the query string is carried over.
+  async redirects() {
+    return [
+      { source: "/classifier", destination: "/dynocard-classifier", permanent: false },
+      { source: "/explorer", destination: "/dynocard-explorer", permanent: false },
+      { source: "/daily", destination: "/daily-dashboard", permanent: false },
+      { source: "/trends", destination: "/trend-analysis", permanent: false },
+      { source: "/setpoints", destination: "/setpoint-report", permanent: false },
+      { source: "/morning-report", destination: "/morning-reports", permanent: false },
+    ];
+  },
 };

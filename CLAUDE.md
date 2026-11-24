@@ -20,12 +20,13 @@ next to the typical shape of the predicted label, with the bins the model weighs
   min/max; a typed date moves the other end) and show a note with the limit; a saved range
   that's too long is cut to the last N days (`useCardRangeFor`). SPM/fillage aren't shown (not
   in MLDB).
-- One page (`/`): Well (every MLDB well) + Sort by date & time + From/To dates (no Area/Route,
+- Home `/` redirects to the Daily Dashboard (`/daily-dashboard`; a `/` link with query params goes to
+  `/dynocard-classifier` with them). Dynocard Classifier (`/dynocard-classifier`): Well (every MLDB well) + Sort by date & time + From/To dates (no Area/Route,
   removed on request); filter by predicted label;
   searchable/sortable card table; Plotly card viewer with a "Compare with" label and an
   importance overlay; a guide to the 10 labels.
 - No review flags or reviewer notes (removed on request to match the artifact).
-- `/explorer` (Dynocard Explorer, under Dynocards in the menu) is the same `DynocardReview`
+- `/dynocard-explorer` (Dynocard Explorer, under Dynocards in the menu) is the same `DynocardReview`
   component with `hierarchyFilter`: cascading Area → Route → Well selects from
   `lib/dynocard/well-hierarchy.ts` (133 wells supplied by the business). Card NodeIDs match
   case-insensitively, ignoring "#" and extra spaces. The Explorer only shows cards from wells
@@ -38,8 +39,8 @@ next to the typical shape of the predicted label, with the bins the model weighs
   counts update); "Show N hidden cards" in the sticky bar restores them. No thumbnails, selection
   or overlay (removed on request).
 - Left-hand menu (`components/AppSidebar.tsx`, `AppShell.tsx`) with four optimization dashboards
-  modelled on the Ambyint/QuickSight screenshots: `/daily` (Daily Dashboard), `/trends`
-  (Trend Analysis), `/setpoints` (Setpoint Report), `/review` (Review). Field Summary was not
+  modelled on the Ambyint/QuickSight screenshots: `/daily-dashboard` (Daily Dashboard), `/trend-analysis`
+  (Trend Analysis), `/setpoint-report` (Setpoint Report), `/review` (Review). Field Summary was not
   built (no screenshot). They read `/api/lift/*`, which serves **generated sample data** from
   `lib/lift/sample.ts` (deterministic, runs to yesterday) until a real SQL source is wired up.
 - **Live data (XSPOC):** the Daily Dashboard ends with a "Well Run Status" grid
@@ -49,7 +50,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
   5 min. It ignores the sample-data controls above it. A "Last scan" filter (default: not updated
   6 hours or more; the only other choice is All wells) plus a "Since Last Scan" column, computed in
   `lib/xspoc/scan-age.ts` from the wall-clock Last Good Scan vs. the viewer's clock.
-- **Morning Reports** (`/morning-report`, under Dynocards): the XSPOC "EFD_Morning_Report" grid
+- **Morning Reports** (`/morning-reports`, under Dynocards): the XSPOC "EFD_Morning_Report" grid
   for groups AT1 West/East/Central (query in `lib/xspoc/morning-report.ts`; columns, formatting,
   highlight rules and CSV in `lib/xspoc/morning-report-columns.ts`). Area/Well dropdowns, column
   filter row, Refresh + "Last Refresh" time, optional 5-min auto refresh, Export CSV (current
@@ -72,7 +73,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
   `DataSourceBar` (just the From/To dates, plus an error line if MLDB fails). Clicking a tile opens a dropdown of its wells; the header (condition · wells · cards)
   and each well go straight to the Dynocard Classifier, and so does every number in the per-well
   table (no menus, on request). Links come from `lib/dynocard/drill.ts`:
-  `?condition=` (or `?label=Full Pump`) `&well=&from=&to=`. `DynocardReview` puts from/to into
+  `/dynocard-classifier?condition=` (or `?label=Full Pump`) `&well=&from=&to=`. `DynocardReview` puts from/to into
   the shared range and the well into its own filters (Classifier: Well;
   Explorer: Area/Route/Well), strips them from the URL, and keeps condition/label as a banner
   filter. "Show all cards" clears condition and well (and the Explorer's area/route) and resets the dates to
@@ -88,7 +89,7 @@ next to the typical shape of the predicted label, with the bins the model weighs
 
 | Item | Value |
 | --- | --- |
-| App name | VOC Artificial Lift (Dynocard Classifier Review is the `/` page) |
+| App name | VOC Artificial Lift (home `/` = Daily Dashboard; Dynocard Classifier Review at `/dynocard-classifier`) |
 | Base path | `/als` (`NEXT_PUBLIC_BASE_PATH`) |
 | Data | MLDB `dyno.Prediction` (`VOC-SQL01-DEV`, SQL login, read-only) for cards; `db/model-reference.json` (committed); live XSPOC (`VOC-SQL05`, SQL login or Windows account via `SQL_USER`/`SQL_PASSWORD`[/`SQL_DOMAIN`], read-only). No ODBC driver anywhere |
 | Auth | IIS Windows Auth via iisnode (`lib/auth.ts`, `/api/user`) |

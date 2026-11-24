@@ -12,7 +12,7 @@ export default function NotFound() {
       <h1 className="text-3xl">Page not found</h1>
       <p className="text-muted-foreground">That page doesn&apos;t exist in this app.</p>
       <Button asChild>
-        <Link href="/">Back to the card review</Link>
+        <Link href="/daily-dashboard">Back to the Daily Dashboard</Link>
       </Button>
     </div>
   );

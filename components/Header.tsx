@@ -39,7 +39,7 @@ export function Header({
             </Button>
           )}
           <Link
-            href="/"
+            href="/daily-dashboard"
             className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {/* Official logo (dark green/grey on transparent); a light chip keeps it legible in dark mode. */}

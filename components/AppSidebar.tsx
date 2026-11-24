@@ -28,18 +28,18 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Optimization",
     items: [
-      { href: "/daily", label: "Daily Dashboard", icon: LayoutDashboard },
-      { href: "/trends", label: "Trend Analysis", icon: LineChart },
-      { href: "/setpoints", label: "Setpoint Report", icon: SlidersHorizontal },
+      { href: "/daily-dashboard", label: "Daily Dashboard", icon: LayoutDashboard },
+      { href: "/trend-analysis", label: "Trend Analysis", icon: LineChart },
+      { href: "/setpoint-report", label: "Setpoint Report", icon: SlidersHorizontal },
       { href: "/review", label: "Review", icon: GitCompareArrows },
     ],
   },
   {
     title: "Dynocards",
     items: [
-      { href: "/", label: "Dynocard Classifier", icon: Activity },
-      { href: "/explorer", label: "Dynocard Explorer", icon: Compass },
-      { href: "/morning-report", label: "Morning Reports", icon: Sunrise },
+      { href: "/dynocard-classifier", label: "Dynocard Classifier", icon: Activity },
+      { href: "/dynocard-explorer", label: "Dynocard Explorer", icon: Compass },
+      { href: "/morning-reports", label: "Morning Reports", icon: Sunrise },
     ],
   },
 ];

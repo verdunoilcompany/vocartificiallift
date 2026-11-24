@@ -130,7 +130,7 @@ export function ReviewDashboard() {
             filtersActive={filters.active}
             selected={selection.selected}
             onToggle={selection.toggle}
-            analyseHref={(w) => `/trends?well=${encodeURIComponent(w)}`}
+            analyseHref={(w) => `/trend-analysis?well=${encodeURIComponent(w)}`}
           />
           <div className="grid content-start gap-5 lg:grid-cols-2">
             <RangePicker
